@@ -54,6 +54,10 @@ void placeTreesnTags() {
       if (tagged) tags.add(trees.get(trees.size()-1).tag);
     }
   }
+  
+  for (Tag tag: tags){
+    tag.getNeighbours();
+  }
 }
 
 void draw () {
@@ -156,7 +160,7 @@ void drawGUI() {
   if (inspectionText!="") {
     noFill();
     stroke(255.0);
-    rect(140, height - 65, 300, 60);
+    rect(140, height - 65, 400, 60);
   }
   fill(255.0); // Text color
   text("Total trees: " + trees.size(), 950, height - 25);
@@ -232,8 +236,9 @@ void inspection () {
   Tag aimed_tag=tags.get(inspected_tag_index);
   String tag_id="Tag ID: "+aimed_tag.id;
   String vp = "Vuln prob: "+aimed_tag.vuln_prob;
+  String entropy= "Entropy: "+aimed_tag.entropy;
   String hops="Onehops: "+aimed_tag.onehops.size() + "  Twohops: "+aimed_tag.twohops.size();
-  inspectionText=tag_id + "    " +vp + '\n'+ hops;
+  inspectionText=tag_id + "    " +vp+ "     " + entropy+ '\n'+ hops;
 }
 
 int getAimedTreeIndex() {

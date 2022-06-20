@@ -23,9 +23,10 @@ class Tree {
    void draw () {
      noStroke();
      fill(20, 255, 90);
-     ellipse(pos.x, pos.y, tree_diameter, tree_diameter);
-     if(tagged){
+     if(tagged) {
+       ellipse(pos.x, pos.y, tree_diameter*(0.7+2*tag.entropy), tree_diameter*(0.7+2*tag.entropy));
        this.tag.draw();
      }
+     else ellipse(pos.x, pos.y, tree_diameter, tree_diameter);
    }
 }

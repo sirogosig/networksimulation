@@ -107,7 +107,9 @@ class Tag {
    // The following calculates the entropy only with unique twohops
   float calc_entropy_unique(){
     float[] total_unique_twohops=new float[this.onehops.size()];
+    for(int i=0;i<total_unique_twohops.length;i++) total_unique_twohops[i]=1.0; //initialise at 1 (themselves)
     
+    //Share two-hops between one-hops
     for (int i=0;i< this.twohops.size();i++){
       Tag twohop=this.twohops.get(i);
       int links=0;
@@ -131,12 +133,28 @@ class Tag {
     //}
     //print(this.id + " : " + sum_total_unique_twohops + "  " +this.twohops.size() + '\n');
 
-    float entropy=0;
+    // Merge connected one-hops
+    for(int i=0;i<this.onehops.size();i++){
+      if(total_unique_twohops[i]!=0){ //If you haven't already been merged
+        for(int j=0;j<this.onehops.size();j++){
+          if(ALmatch(onehops.get(i),onehops.get(j).onehops)){
+            total_unique_twohops[i]+=total_unique_twohops[j];
+            total_unique_twohops[j]=0;
+          }
+        }
+      }
+    }
+    
+    int total=this.twohops.size()+this.onehops.size();
+    float entropy=0.0;
+    print("ID = "+this.id + "  ");
     for (int i=0; i<total_unique_twohops.length;i++){
+      print(total_unique_twohops[i]);
       if(total_unique_twohops[i]!=0){
-        entropy+=(float)total_unique_twohops[i]/this.twohops.size()*log((float)total_unique_twohops[i]/this.twohops.size());
+        entropy+=((float)total_unique_twohops[i])/total*log(((float)total_unique_twohops[i])/total);
       }  
     }
+    print('\n');
     return -entropy; // '-' in the Entropy formula
   }
   
@@ -167,7 +185,7 @@ class Tag {
   
   // update timer
   void increment () {
-    thinkTimer = (thinkTimer + 1) % 8; // The thinkTimer is between 0 and 7
+    thinkTimer = (thinkTimer + 1) % 10; // The thinkTimer is between 0 and 9
   }
 }
 

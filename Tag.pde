@@ -135,7 +135,15 @@ class Tag {
 
     // Merge connected one-hops
     for(int i=0;i<this.onehops.size();i++){
-      if(total_unique_twohops[i]!=0){ //If you haven't already been merged
+      if(total_unique_twohops[i]>=0){ //If you haven't already been merged
+        for(int j=0;j<this.onehops.size();j++){
+          if(ALmatch(onehops.get(i),onehops.get(j).onehops)){
+            total_unique_twohops[i]+=total_unique_twohops[j];
+            total_unique_twohops[j]=0;
+          }
+        }
+      }
+      else{
         for(int j=0;j<this.onehops.size();j++){
           if(ALmatch(onehops.get(i),onehops.get(j).onehops)){
             total_unique_twohops[i]+=total_unique_twohops[j];

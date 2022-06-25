@@ -13,9 +13,7 @@ int tag_diameter;
 int tree_diameter;
 int commRadius;
 int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggest new cam location
-
-//Toggles :
-//boolean option_friend = true;
+int newLogTimer=0;
 
 // Messages parameters
 int messageTimer = 0;
@@ -54,9 +52,18 @@ void placeTreesnTags() {
       if (tagged) tags.add(trees.get(trees.size()-1).tag);
     }
   }
+  
+  for (Tag tag: tags){
+    tag.getNeighbours();
+  }
 }
 
 void draw () {
+  increment(); // Increment timer of new log
+  if(newLogTimer==0){
+    int tag_index = (int)random(tags.size());
+    
+  }
   // Black background:
   noStroke();
   colorMode(HSB);
@@ -156,7 +163,7 @@ void drawGUI() {
   if (inspectionText!="") {
     noFill();
     stroke(255.0);
-    rect(140, height - 65, 300, 60);
+    rect(140, height - 65, 400, 60);
   }
   fill(255.0); // Text color
   text("Total trees: " + trees.size(), 950, height - 25);
@@ -232,8 +239,9 @@ void inspection () {
   Tag aimed_tag=tags.get(inspected_tag_index);
   String tag_id="Tag ID: "+aimed_tag.id;
   String vp = "Vuln prob: "+aimed_tag.vuln_prob;
+  String entropy= "Entropy: "+aimed_tag.entropy;
   String hops="Onehops: "+aimed_tag.onehops.size() + "  Twohops: "+aimed_tag.twohops.size();
-  inspectionText=tag_id + "    " +vp + '\n'+ hops;
+  inspectionText=tag_id + "    " +vp+ "     " + entropy+ '\n'+ hops;
 }
 
 int getAimedTreeIndex() {
@@ -264,4 +272,8 @@ int getAimedTagIndex() {
     }
   }
   return aimed_tag_index;
+}
+
+void increment () {
+    newLogTimer = (newLogTimer + 1) % 30; // The thinkTimer is between 0 and 29
 }

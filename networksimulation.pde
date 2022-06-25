@@ -13,9 +13,7 @@ int tag_diameter;
 int tree_diameter;
 int commRadius;
 int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggest new cam location
-
-//Toggles :
-//boolean option_friend = true;
+int newLogTimer=0;
 
 // Messages parameters
 int messageTimer = 0;
@@ -61,6 +59,11 @@ void placeTreesnTags() {
 }
 
 void draw () {
+  increment(); // Increment timer of new log
+  if(newLogTimer==0){
+    int tag_index = (int)random(tags.size());
+    
+  }
   // Black background:
   noStroke();
   colorMode(HSB);
@@ -269,4 +272,8 @@ int getAimedTagIndex() {
     }
   }
   return aimed_tag_index;
+}
+
+void increment () {
+    newLogTimer = (newLogTimer + 1) % 30; // The thinkTimer is between 0 and 29
 }

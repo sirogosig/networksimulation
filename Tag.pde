@@ -1,8 +1,10 @@
 int n_tags=0;
-int beta =1; // Max number of paths to be considered vulnerable (Paramter for vulnerability measurement) 
+int beta =1; // Max number of paths to be considered vulnerable (Paramter for vulnerability measurement)
+int numb_comm=0;
 
 class Tag {
   Tree tree;
+  Table logs;
   int id;
   float entropy=0.5;
   float vuln_prob;
@@ -22,7 +24,14 @@ class Tag {
     suggested_new_cam= new PVector(0,0);
     entropy=0.5;
     
-    thinkTimer = int(random(10));
+    logs = new Table();
+    logs.addColumn("id");
+    logs.addColumn("species");
+    logs.addColumn("day");
+    logs.addColumn("hour");
+    logs.addColumn("minute");
+    
+    thinkTimer = int(random(15));
   }
    
   void go () {
@@ -49,7 +58,7 @@ class Tag {
     text("ID: " + this.id, this.tree.pos.x+8, this.tree.pos.y-10);
     //text("1h: " + this.onehops.size(), this.tree.pos.x-28, this.tree.pos.y-20);
     //text("2h: " + this.twohops.size(), this.tree.pos.x-28, this.tree.pos.y-10);
-    text("vp: " + this.vuln_prob, this.tree.pos.x+8, this.tree.pos.y+8);
+    //text("vp: " + this.vuln_prob, this.tree.pos.x+8, this.tree.pos.y+8);
   }
   
   void calcVulnProb(){
@@ -62,7 +71,7 @@ class Tag {
       if(numbpaths==0) print("Error in numbpaths calculation");
       if(numbpaths<=beta && numbpaths>0) pathbeta.add(twohops.get(i));
     }
-    if(this.onehops.size() == 0 || this.twohops.size()==0){
+    if(this.onehops.size() == 0){
       vuln_prob =1;
       entropy=1;
     }
@@ -104,7 +113,7 @@ class Tag {
     return -entropy; // '-' in the Entropy formula
   }
   
-   // The following calculates the entropy only with unique twohops
+  // The following calculates the entropy only with unique twohops
   float calc_entropy_unique(){
     float[] total_unique_twohops=new float[this.onehops.size()];
     for(int i=0;i<total_unique_twohops.length;i++) total_unique_twohops[i]=1.0; //initialise at 1 (themselves)
@@ -135,35 +144,31 @@ class Tag {
 
     // Merge connected one-hops
     for(int i=0;i<this.onehops.size();i++){
-      if(total_unique_twohops[i]>=0){ //If you haven't already been merged
-        for(int j=0;j<this.onehops.size();j++){
-          if(ALmatch(onehops.get(i),onehops.get(j).onehops)){
-            total_unique_twohops[i]+=total_unique_twohops[j];
-            total_unique_twohops[j]=0;
-          }
-        }
-      }
-      else{
-        for(int j=0;j<this.onehops.size();j++){
-          if(ALmatch(onehops.get(i),onehops.get(j).onehops)){
-            total_unique_twohops[i]+=total_unique_twohops[j];
-            total_unique_twohops[j]=0;
-          }
-        }
-      }
+      if(total_unique_twohops[i]>=1) total_unique_twohops=merge(total_unique_twohops,i,i);
     }
     
     int total=this.twohops.size()+this.onehops.size();
     float entropy=0.0;
-    print("ID = "+this.id + "  ");
     for (int i=0; i<total_unique_twohops.length;i++){
       print(total_unique_twohops[i]);
-      if(total_unique_twohops[i]!=0){
+      if(total_unique_twohops[i]>0){
         entropy+=((float)total_unique_twohops[i])/total*log(((float)total_unique_twohops[i])/total);
       }  
     }
-    print('\n');
-    return -entropy; // '-' in the Entropy formula
+    return abs(entropy); // '-' in the Entropy formula
+  }
+  
+  // Function that merges all linked nodes into the node at redirect_index
+  float[] merge(float[] weights, int redirect_index,int emitter_index){
+    for(int i=0;i<onehops.size();i++){
+      if(i==emitter_index || i==redirect_index) continue;
+      if(ALmatch(onehops.get(i),onehops.get(emitter_index).onehops) && weights[i]>0){
+        weights[redirect_index]+=weights[i];
+        weights[i]=-redirect_index;
+        weights=merge(weights,redirect_index,i);
+      }
+    }
+    return weights;
   }
   
   void getNeighbours () {
@@ -191,9 +196,19 @@ class Tag {
     this.twohops = twohops_;
   }
   
+  void addLog(int id, String species, int day, int hour, int minute){
+    TableRow newRow = logs.addRow();
+    newRow.setInt("id", id);
+    newRow.setString("species", species);
+    newRow.setInt("day", day);
+    newRow.setInt("hour", hour);
+    newRow.setInt("minute", minute);
+    numb_comm+=5; // Count the communication that was made (5 x uint8);
+  }
+  
   // update timer
   void increment () {
-    thinkTimer = (thinkTimer + 1) % 10; // The thinkTimer is between 0 and 9
+    thinkTimer = (thinkTimer + 1) % 15; // The thinkTimer is between 0 and 14
   }
 }
 

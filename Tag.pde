@@ -19,8 +19,8 @@ class Tag {
   ArrayList <Tag> bottlenecks_one; // Onehops that are bottleneck nodes
   ArrayList <Tag> bottlenecks_two; // Twohops that are bottleneck nodes
   //int[][] routes; // Routes for BN
-  ArrayList <IntList> routes; // Routes for BN
-  ArrayList <ArrayList<Tag>> routes__; // Routes for BN
+  //ArrayList <IntList> routes; // Routes for BN
+  ArrayList <ArrayList<Tag>> routes; // Routes for BN
   ArrayList <Tag> least_vuln; // List of least vulnerable one-hops
   
   // timers
@@ -33,7 +33,8 @@ class Tag {
     onehops = new ArrayList<Tag>();
     twohops = new ArrayList<Tag>();
     bottlenecks_one= new ArrayList<Tag>();
-    routes = new ArrayList<IntList>();
+    //routes = new ArrayList<IntList>();
+    routes = new ArrayList<ArrayList<Tag>>();
     prev_entropy=0.;
     entropy=0.;
     entr_grad=0;
@@ -189,36 +190,48 @@ class Tag {
   }
   
   //Calculates the different routes for bottleneck nodes
-  ArrayList<IntList> calcRoutes(float[] weights, int numb_routes){
-    ArrayList<IntList> routes_= new ArrayList<IntList>(numb_routes);
-    //int[][] routes = new int[this.onehops.size()][numb_routes];
+  //ArrayList<IntList> calcRoutes(float[] weights, int numb_routes){
+  //  ArrayList<IntList> routes_= new ArrayList<IntList>(numb_routes);
+  //  //int[][] routes = new int[this.onehops.size()][numb_routes];
+  //
+  //  int route=0;
+  //  for(int i=0;i<weights.length;i++){
+  //    //println(weights.length + "  " + numb_routes+ "  " + i);
+  //    if(weights[i]>0){
+  //      IntList one_route = new IntList();
+  //      for(int j=0;j<weights.length;j++){
+  //        if(weights[j]==-i || j==i) one_route.append(this.onehops.get(j).id);
+  //      }
+  //      routes_.add(one_route);
+  //      if(route < numb_routes-1) route++;
+  //    }
+  //  }
     
-    //Initialise at -1
-    //for(int i=0;i<this.onehops.size();i++){
-    //  for(int j=0;j<numb_routes;j++){
-    //    routes[i][j]=-1;
-    //  }
-    //}
+  //  //println("I am : "+ this.id + ", #routes= " + numb_routes);
+  //  //for(int i=0;i<this.onehops.size();i++){
+  //  //  for(int j=0;j<numb_routes;j++){
+  //  //    println(routes[i][j]);
+  //  //  }
+  //  //}
+  //  return routes_;
+  //}
+  
+  ArrayList<ArrayList<Tag>> calcRoutes(float[] weights, int numb_routes){
+    ArrayList<ArrayList<Tag>> routes_= new ArrayList<ArrayList<Tag>>(numb_routes);
     
     int route=0;
     for(int i=0;i<weights.length;i++){
       //println(weights.length + "  " + numb_routes+ "  " + i);
       if(weights[i]>0){
-        IntList one_route = new IntList();
+        ArrayList<Tag> one_route = new ArrayList<Tag>();
         for(int j=0;j<weights.length;j++){
-          if(weights[j]==-i || j==i) one_route.append(this.onehops.get(j).id);
+          if(weights[j]==-i || j==i) one_route.add(this.onehops.get(j));
         }
         routes_.add(one_route);
         if(route < numb_routes-1) route++;
       }
     }
     
-    //println("I am : "+ this.id + ", #routes= " + numb_routes);
-    //for(int i=0;i<this.onehops.size();i++){
-    //  for(int j=0;j<numb_routes;j++){
-    //    println(routes[i][j]);
-    //  }
-    //}
     return routes_;
   }
   
@@ -338,26 +351,29 @@ class Tag {
     numb_comm++;
     int sender_id=sender.id;
     
-    //Not sure I need this… :
-    IntList other_BN= new IntList();
-    //check if there are other BN to transfer the log to first
-    for(Tag tag : this.bottlenecks_one){
-      other_BN.append(tag.id); // add its ID to the list
-    }
+    ////Not sure I need this… :
+    //IntList other_BN= new IntList();
+    ////check if there are other BN to transfer the log to first
+    //for(Tag tag : this.bottlenecks_one){
+    //  other_BN.append(tag.id); // add its ID to the list
+    //}
     
     //Find route of sender
     int route=-1;
     for(int i=0;i<this.routes.size();i++){ //Run over the different routes
-      if(this.routes.get(i).hasValue(sender_id)) {
-        route=i;
-        break;
+      for(int j = 0;j<this.routes.get(i).size();j++){ // Run over different nodes in one route
+        if(this.routes.get(i).get(j).id==sender_id){
+          route=i;
+          break;
+        }
       }
     }
     println("I am : " + this.id);
     
     //Send the log to all other routes (non-BN nodes)
     for(int i=0;i<this.routes.size();i++){ //Run over the different routes
-      IntList currentroute=this.routes.get(i);
+      //IntList currentroute=this.routes.get(i);
+      ArrayList<Tag> currentroute=this.routes.get(i);
       //println("current route  = " + currentroute);
       if(i==route) continue;
       
@@ -365,20 +381,21 @@ class Tag {
       //println("checking if not all BN");
       boolean all_BN=true;
       for(int j=0; j<currentroute.size();j++){
-        if(!other_BN.hasValue(currentroute.get(j))){
+        if(currentroute.get(j).entropy==0){
           all_BN=false;
           break;
         }
       }
-      //println("check completed :" + all_BN);
+      //println("check completed : " + all_BN);
       if(all_BN) continue;
       
-      int transfer_id;
+      int random_index;
       do{
-        currentroute.shuffle();
-        transfer_id = currentroute.get(0);
-      }while(other_BN.hasValue(transfer_id)); // Needs to not be a BN
-      
+        random_index=(int)random(currentroute.size());
+        //currentroute.shuffle();
+        //transfer_id = currentroute.get(0);
+      }while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
+      int transfer_id = currentroute.get(random_index).id;
       println("Sending log to " + transfer_id);
      
       for(int j=0; j<this.onehops.size(); j++){
@@ -401,12 +418,12 @@ class Tag {
     // If we're a BN ourself, send the log to all routes without any BN node
     if(this.entropy>0){
       for(int i=0;i<this.routes.size();i++){ //Run over the different routes
-        IntList currentroute=this.routes.get(i);
+        ArrayList<Tag> currentroute=this.routes.get(i);
         
-        //check if it has a BN (in which case skip the route completely)
+        //check if it has a BN in one-hops or two-hops (in which case skip the route completely)
         boolean any_BN=false;
         for(int j=0; j<currentroute.size();j++){
-          if(currentroute.get(j).entropy>0){
+          if(currentroute.get(j).entropy>0 || currentroute.get(j).bottlenecks_one.size()>1){ // >1 as there is ourselves already ;)
             any_BN=true;
             break;
           }
@@ -414,13 +431,12 @@ class Tag {
         //println("check completed :" + all_BN);
         if(any_BN) continue;
         
-        int transfer_id;
+        int random_index;
         do{
-          currentroute.shuffle();
-          transfer_id = currentroute.get(0);
-        }while(other_BN.hasValue(transfer_id)); // Needs to not be a BN
-        
-        println("Sending log to " + transfer_id);
+          random_index=(int)random(currentroute.size());
+        }while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
+        int transfer_id = currentroute.get(random_index).id;
+        println("I am BN and new log sent to " + transfer_id);
        
         for(int j=0; j<this.onehops.size(); j++){
           if(this.onehops.get(j).id==transfer_id){
@@ -434,7 +450,7 @@ class Tag {
     //Check for BN in onehops
     if(bottlenecks_one.size()!=0){
       for(int i=0;i<this.bottlenecks_one.size();i++){
-        println("New log transferred to one-hop " + bottlenecks_one.get(i).id);
+        println("New log sent to one-hop " + bottlenecks_one.get(i).id);
         bottlenecks_one.get(i).transferLog(log_numb, id, this);
       }
     }
@@ -454,7 +470,7 @@ class Tag {
           index=i; // spreadLog to the one-hop that is in contact with the most two-hop BN
         }
       }
-      println("New log transferred to non-BN one-hop " + onehops.get(index).id);
+      println("New log sent to non-BN one-hop " + onehops.get(index).id);
       this.onehops.get(index).spreadLog(log_numb,id);
     }
     
@@ -463,7 +479,7 @@ class Tag {
       //Write here;
     }
 
-    
+    //Take VP into account:
     //for(Tag tag : this.least_vuln){
     //  if(1.2*tag.vuln_prob<this.vuln_prob) tag.addLog(log_numb, id);
     //}

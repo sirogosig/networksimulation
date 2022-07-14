@@ -1,10 +1,15 @@
-import garciadelcastillo.dashedlines.*;
-DashedLines dash;
+//import garciadelcastillo.dashedlines.*;
+//DashedLines dash;
+
+//Simualtion parameters:
+boolean gradient_on =false;
 
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
+
 int log_count=0;
 int numb_comm=0; // Number of communications
+int numb_setup_comm=0;
 int max_memory=0;
 
 
@@ -15,7 +20,7 @@ String tool = "new_logs";
 int tag_diameter;
 int tree_diameter;
 int commRadius;
-int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggest new cam location
+int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggested new cam location
 int newLogTimer=0;
 
 // Messages parameters
@@ -23,6 +28,7 @@ int messageTimer = 0;
 int logMessageTimer=0;
 String messageText = "";
 String inspectionText = "";
+String logMessageText= "";
 
 // toggles
 boolean new_logs=false;
@@ -37,8 +43,8 @@ void setup () {
   tags = new ArrayList<Tag>();
   trees = new ArrayList<Tree>();
   placeTreesnTags();
-  dash = new DashedLines(this);
-  dash.pattern(2, 3);
+  //dash = new DashedLines(this);
+  //dash.pattern(2, 3);
 }
 
 void recalculateConstants () {
@@ -62,12 +68,29 @@ void placeTreesnTags() {
     }
   }
   
+  
+  // run getNeighbours() twice to make sure two-hops are configurated too !
   for (Tag tag: tags){
     tag.getNeighbours();
+    numb_setup_comm+=tag.onehops.size();
+  }
+  for (Tag tag: tags){
+    tag.getNeighbours();
+    numb_setup_comm+=tag.onehops.size();
   }
   
   //Remove isolated tags:
   removeIsolatedTags();
+  
+  for(Tag tag : tags){
+    tag.calcVulnProb(); // Computes vp and entropy
+    tag.getBottlenecks();
+    tag.getMostVulnNeighb(); // Finds the most vulnerable onehops
+    if(gradient_on){
+      if(tag.entropy>0) tag.updateEntrGrad(tag.entropy,tag,tag.id);
+      tag.prev_entropy=tag.entropy;
+    }
+  }
 }
 
 void draw () {
@@ -169,6 +192,7 @@ void keyPressed () {
   } else if (key == 'r') { // Reset
     n_tags=0;
     numb_comm=0;
+    numb_setup_comm=0;
     log_count=0;
     max_memory=0;
     tags.clear();
@@ -188,21 +212,22 @@ void drawGUI() {
   if (logMessageTimer > 0){
     fill((min(30, logMessageTimer) / 30.0) * 255.0);
 
-    text("Log added !", 630, height - 25);
+    text(logMessageText, 590, height - 25);
   }
   fill(255.0); // Text color
-  text(inspectionText, 150, height - 45);
+  text(inspectionText, 110, height - 45);
   if (inspectionText!="") {
     noFill();
     stroke(255.0);
-    rect(140, height - 65, 400, 60);
+    rect(100, height - 65, 550, 60);
   }
   fill(255.0); // Text color
-  text("Max memory : " + max_memory, 730, height-25);
-  text("Total comms: " + numb_comm, 850, height-25);
-  text("Total logs: " + log_count, 970, height - 25);
-  text("Total tags: " + tags.size(), 1070, height - 25);
-  text("Total trees: " + trees.size(), 1170, height - 25);
+  text("Largest memory : " + max_memory, 690, height - 25);
+  text("# SU comms: " + numb_setup_comm, 830,height - 25);
+  text("# comms: " + numb_comm, 960, height - 25);
+  text("# logs: " + log_count, 1050, height - 25);
+  text("# tags: " + tags.size(), 1120, height - 25);
+  text("# trees: " + trees.size(), 1200, height - 25);
 }
 
 void mousePressed () {
@@ -273,14 +298,32 @@ void inspection () {
   String entropy= "Entropy: "+aimed_tag.entropy;
   String hops="Onehops: "+aimed_tag.onehops.size() + "  Twohops: "+aimed_tag.twohops.size();
   String logs="Logs: ";
-  String most_vuln= "Most vuln: " + aimed_tag.most_vuln.size();
+  String most_vuln= "Most vuln: " + aimed_tag.least_vuln.size();
+  String entr_grad= "Entr grad: " + aimed_tag.entr_grad;
   for(int i =0;i<aimed_tag.logs.getRowCount();i++){
     logs+=" ";
     logs+=aimed_tag.logs.getInt(i,"log_numb");
     logs+=",";
   }
   
-  inspectionText=tag_id + "    " +vp+ "     " + entropy + "    " + most_vuln + '\n'+ hops + "    " + logs;
+  inspectionText=tag_id + "   " +vp+ "    " + entropy + "   " + most_vuln + "  "+ entr_grad+ '\n'+ hops + "    " + logs;
+}
+
+void runExperiment(){
+  //Randomly damage network
+  
+  
+  //Extract from random node
+  inspected_tag_index=(int)random(tags.size());
+  Tag aimed_tag=tags.get(inspected_tag_index);
+  Table all_logs=aimed_tag.extractLogsNetwork(aimed_tag,0); // Exctract the logs of the network from this node
+  all_logs.sort("log_numb");
+  println("Number of collected logs: "+all_logs.getRowCount());
+  println("Collected logs are: ");
+  for (int i =0; i < all_logs.getRowCount();i++){
+    println(all_logs.getInt(i,"log_numb"));
+  }
+  //log_count=0; // No more logs in the network anymore
 }
 
 void extraction () {
@@ -328,7 +371,8 @@ int getAimedTagIndex() {
 
 void createLog(){
   int tag_index = (int)random(tags.size());
-  tags.get(tag_index).addLog(log_count,tags.get(tag_index).id);
+  tags.get(tag_index).newLog(log_count);
+  logMessageText="New log at " + tags.get(tag_index).id;
   logMessageTimer = (int) (frameRate * 0.6);
   log_count++;
 }

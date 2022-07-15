@@ -1,5 +1,7 @@
 int n_tags=0;
 int beta =1; // Max number of paths to be considered vulnerable (Paramter for vulnerability probability calculation)
+int tag_diameter;
+
 
 class Tag {
   Tree tree;

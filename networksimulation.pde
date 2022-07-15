@@ -1,6 +1,3 @@
-//import garciadelcastillo.dashedlines.*;
-//DashedLines dash;
-
 //Experimentation parameters:
 final static int NUM_LOGS= 100; // Number of logs to be recorded before testing robustness
 final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
@@ -23,9 +20,6 @@ int max_memory=0;
 float globalScale = 1.;
 float eraseRadius = 30;
 String tool = "new_logs";
-
-int tag_diameter;
-int tree_diameter;
 int commRadius;
 int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggested new cam location
 int newLogTimer=0;
@@ -52,13 +46,12 @@ void setup () {
   tags = new ArrayList<Tag>();
   trees = new ArrayList<Tree>();
   placeTreesnTags();
-  //dash = new DashedLines(this);
-  //dash.pattern(2, 3);
 }
 
 void recalculateConstants () {
   tag_diameter=(int) (8.*globalScale);
   tree_diameter=(int) (12.*globalScale);
+  tree_distance=(int)(80*globalScale);
 
   commRadius = (int) (220.*globalScale);
 }
@@ -136,7 +129,7 @@ void keyPressed () {
   } else if (key == 'e') {
     experimenting = experimenting ? false : true;
     if(experimenting) message("Experimenting launched");
-    else message("Experimenting finished");
+    else message("Experimenting paused");
   } else if (key == 'z') {
     tool = "tag_eraser";
     message("Tag eraser");
@@ -158,8 +151,12 @@ void keyPressed () {
     if(communicate) message("Communication on");
     else message("Communication off");
   } else if (key == 'r') { // Reset
-    message("Tag eraser");
-    reset();
+    message("Reset");
+    int blob_size=0;
+    do{
+      reset();
+      blob_size = tags.get(0).connex(tags.get(0)).size();
+    } while(blob_size!=tags.size());
   }
   recalculateConstants();
 }
@@ -253,8 +250,8 @@ void message (String in) {
 }
 
 void placeTreesnTags() {
-  for (int x = 100; x < width - 50; x+= 80) {
-    for (int y = 100; y < height - 100; y+= 80) {
+  for (int x = 100; x < width - 50; x+= tree_distance) {
+    for (int y = 100; y < height - 100; y+= tree_distance) {
       boolean tagged=false;
       int randint=(int)random(5);
       if (randint==1) {

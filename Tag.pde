@@ -13,7 +13,6 @@ class Tag {
   ArrayList <ArrayList<Tag>> routes__; // Routes for BN
   
   boolean connexed=false; // Used when verifying connexity
-  boolean retrieved=false; // Used when retrieving data
   // timers
   int newNeighboursTimer = 0;
    
@@ -60,19 +59,6 @@ class Tag {
     //text("vp: " + this.vuln_prob, this.tree.pos.x+8, this.tree.pos.y+8);
   }
   
-  // Function that merges all linked nodes into the node at redirect_index
-  float[] merge(float[] weights, int redirect_index,int emitter_index){
-    for(int i=0;i<onehops.size();i++){
-      if(i==emitter_index || i==redirect_index) continue;
-      if(ALmatch(onehops.get(i),onehops.get(emitter_index).onehops) && weights[i]>0){
-        weights[redirect_index]+=weights[i];
-        weights[i]=-redirect_index;
-        weights=merge(weights,redirect_index,i);
-      }
-    }
-    return weights;
-  }
-  
   void getNeighbours () {
     ArrayList<Tag> onehops_ = new ArrayList<Tag>();
     for (int i =0; i < tags.size(); i++) {
@@ -104,36 +90,27 @@ class Tag {
     }
   }
   
-  // Creates new log and spreads it
+  // Creates new log and spread it to everybody
   void newLog(int log_numb){
     TableRow newRow = this.logs.addRow();
     newRow.setInt("log_numb",log_numb);
-    newRow.setInt("id", this.id);
-    if(this.logs.getRowCount()>max_memory) max_memory= this.logs.getRowCount(); // Update global max memory (metric)
+    newRow.setInt("id", id);
+    
+    //// Spread log to all neighbours
+    //for(int i=0;i<this.onehops.size();i++){
+    //  if(!containsLog(this.onehops.get(i).logs, newRow)){
+    //    this.onehops.get(i).newLog(log_numb, id);
+    //  }
+    //}
   }
   
-  // "caller" is the tag that called the function
-  // "degree" is the depth since the first call. Used to indicate how many communications are needed for data retrieval
-  Table extractLogsNetwork(Tag caller, int degree){
-    this.retrieved=true;
+  Table extractLogsNetwork(){
     Table all_logs = new Table();
     all_logs.addColumn("log_numb");
     all_logs.addColumn("id");
     
     for(TableRow row : this.logs.rows()){ // Exctract your own logs
-      numb_comm+=degree; // Add the number of communications needed for retrieval
       all_logs.addRow(row);
-    }
-    
-    // Extract your one-hops' logs (those that you don't have in common with the caller)
-    for(int i=0;i<this.onehops.size();i++){
-      if(!onehops.get(i).retrieved && (!ALmatch(onehops.get(i), caller.onehops) || caller==this)){
-        Table new_table=new Table();
-        new_table=onehops.get(i).extractLogsNetwork(this, degree+1); // Flagging yourself as the caller
-        for(TableRow row : new_table.rows()){
-          if(!containsLog(all_logs,row)) all_logs.addRow(row); // Merge with existing table
-        }
-      }
     }
     return all_logs;
   }

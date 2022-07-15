@@ -17,8 +17,6 @@ int lost_logs=0;
 int log_count=0;
 int numb_comm=0; // Number of transmissions
 int numb_setup_comm=0; //Number of setup transmissions
-int max_memory=0;
-
 
 float globalScale = 1.;
 float eraseRadius = 30;
@@ -184,7 +182,7 @@ void drawGUI() {
     rect(100, height - 65, 550, 60);
   }
   fill(255.0); // Text color
-  text("Largest memory : " + max_memory, 690, height - 25);
+  text("Largest memory : " + log_count, 690, height - 25);
   text("# SU comms: " + numb_setup_comm, 830,height - 25);
   text("# comms: " + numb_comm, 960, height - 25);
   text("# logs: " + log_count, 1050, height - 25);
@@ -348,7 +346,7 @@ void runExperiment(){
   if(bufferTimer==3*buffer_value){
     inspected_tag_index=(int)random(tags.size());
     Tag aimed_tag=tags.get(inspected_tag_index);
-    Table all_logs=aimed_tag.extractLogsNetwork(aimed_tag,0); //  the logs of the network from this node
+    Table all_logs=aimed_tag.extractLogsNetwork(); // Extract the logs of the network from this node
     all_logs.sort("log_numb");
     
     println("Extracted logs from tag " + aimed_tag.id);
@@ -360,8 +358,7 @@ void runExperiment(){
 void extraction () {
   inspected_tag_index = getAimedTagIndex(); // Returns the index of the tag in tags aimed by the mouse
   Tag aimed_tag=tags.get(inspected_tag_index);
-  Table all_logs=aimed_tag.extractLogsNetwork(aimed_tag,0); // Exctract the logs of the network from this node
-  resetExtraction(); // Ensure we can extract from other point after the first extraction too
+  Table all_logs=aimed_tag.extractLogsNetwork(); // Exctract the logs of the network from this node
   all_logs.sort("log_numb");
   println("Number of collected logs: "+all_logs.getRowCount());
   //println("Collected logs are: ");
@@ -402,11 +399,15 @@ int getAimedTagIndex() {
 }
 
 void createRandomLog(){
-  int tag_index = (int)random(tags.size());
-  tags.get(tag_index).newLog(log_count);
-  logMessageText="New log at " + tags.get(tag_index).id;
+  for(int i=0;i<tags.size();i++){
+    tags.get(i).newLog(log_count);
+  }
+  //int tag_index = (int)random(tags.size());
+  //tags.get(tag_index).newLog(log_count,tags.get(tag_index).id);
+  logMessageText="New log added " ;//+ tags.get(tag_index).id;
   logMessageTimer = (int) (frameRate * 0.6);
   log_count++;
+  numb_comm+=tags.size()-1; // Number of transmissions needed for the new log to reach all tags
 }
 
 void removeIsolatedTags(){
@@ -423,17 +424,12 @@ void removeIsolatedTags(){
   }
 }
 
-void resetExtraction(){
-  for(int i=0;i<tags.size();i++) tags.get(i).retrieved=false;
-}
-
 void reset(){
   lost_logs=0;
   n_tags=0;
   numb_comm=0;
   numb_setup_comm=0;
   log_count=0;
-  max_memory=0;
   tags.clear();
   trees.clear();
   placeTreesnTags();

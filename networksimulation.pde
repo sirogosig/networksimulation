@@ -1,6 +1,3 @@
-//import garciadelcastillo.dashedlines.*;
-//DashedLines dash;
-
 //Experimentation parameters:
 final static int NUM_LOGS= 100; // Number of logs to be recorded before testing robustness
 final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
@@ -8,11 +5,6 @@ final static boolean node_robustness=true; // Select node robsutness (true) or e
 
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
-
-// (Only in node_robustness mode):
-// Number of logs lost inside damaged tags (which could not be retrieved with any model, thus filtered out)
-int lost_logs=0;
-
 
 int log_count=0;
 int numb_comm=0; // Number of transmissions
@@ -22,10 +14,7 @@ float globalScale = 1.;
 float eraseRadius = 30;
 String tool = "new_logs";
 
-int tag_diameter;
-int tree_diameter;
 int commRadius;
-int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggested new cam location
 int newLogTimer=0;
 
 int buffer_value= (int) frameRate * 2;
@@ -50,8 +39,6 @@ void setup () {
   tags = new ArrayList<Tag>();
   trees = new ArrayList<Tree>();
   placeTreesnTags();
-  //dash = new DashedLines(this);
-  //dash.pattern(2, 3);
 }
 
 void recalculateConstants () {
@@ -277,7 +264,7 @@ void placeTreesnTags() {
 }
 
 void inspection () {
-  inspected_tag_index = getAimedTagIndex(); // Returns the index of the tag in tags aimed by the mouse
+  int inspected_tag_index = getAimedTagIndex(); // Returns the index of the tag in tags aimed by the mouse
   Tag aimed_tag=tags.get(inspected_tag_index);
   String tag_id="Tag ID: "+aimed_tag.id;
   String hops="Onehops: "+aimed_tag.onehops.size() + "  Twohops: "+aimed_tag.twohops.size();
@@ -320,7 +307,6 @@ void runExperiment(){
       int numb_dmgd_tags=(int)(NUM_DMGD_TAGS*tags.size());
       while(numb_dmgd_tags>0){
         int damage_index = (int) random(tags.size());
-        lost_logs+=tags.get(damage_index).logs.getRowCount();
         tags.get(damage_index).tree.tagged=false;
         tags.remove(damage_index);
         numb_dmgd_tags--;
@@ -344,19 +330,19 @@ void runExperiment(){
   
   //Extract from random node
   if(bufferTimer==3*buffer_value){
-    inspected_tag_index=(int)random(tags.size());
+    int inspected_tag_index=(int)random(tags.size());
     Tag aimed_tag=tags.get(inspected_tag_index);
     Table all_logs=aimed_tag.extractLogsNetwork(); // Extract the logs of the network from this node
     all_logs.sort("log_numb");
     
     println("Extracted logs from tag " + aimed_tag.id);
-    println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)(log_count-lost_logs));
+    println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
     bufferTimer=buffer_value-1;
   }
 }
 
 void extraction () {
-  inspected_tag_index = getAimedTagIndex(); // Returns the index of the tag in tags aimed by the mouse
+  int inspected_tag_index = getAimedTagIndex(); // Returns the index of the tag in tags aimed by the mouse
   Tag aimed_tag=tags.get(inspected_tag_index);
   Table all_logs=aimed_tag.extractLogsNetwork(); // Exctract the logs of the network from this node
   all_logs.sort("log_numb");
@@ -407,6 +393,9 @@ void createRandomLog(){
   logMessageText="New log added " ;//+ tags.get(tag_index).id;
   logMessageTimer = (int) (frameRate * 0.6);
   log_count++;
+  for(Tag tag : tags){
+    numb_setup_comm+=tag.onehops.size(); // Ask neighbours if they have had the last log
+  }
   numb_comm+=tags.size()-1; // Number of transmissions needed for the new log to reach all tags
 }
 
@@ -425,7 +414,6 @@ void removeIsolatedTags(){
 }
 
 void reset(){
-  lost_logs=0;
   n_tags=0;
   numb_comm=0;
   numb_setup_comm=0;

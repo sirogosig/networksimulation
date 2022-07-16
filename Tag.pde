@@ -1,5 +1,6 @@
 int n_tags=0;
 int beta =1; // Max number of paths to be considered vulnerable (Paramter for vulnerability probability calculation)
+int tag_diameter;
 
 class Tag {
   Tree tree;
@@ -153,14 +154,6 @@ boolean ALmatch(Tag tag_, ArrayList<Tag> list){
 }
 
 boolean containsLog(Table table, TableRow tablerow){
-  for(int i=0;i<table.getRowCount();i++){
-    int log_numb= table.getInt(i,"log_numb");
-    if(log_numb==tablerow.getInt("log_numb")) return true;
-  }
-  return false;
-}
-
-boolean containsID(Table table, TableRow tablerow){
   for(int i=0;i<table.getRowCount();i++){
     int log_numb= table.getInt(i,"log_numb");
     if(log_numb==tablerow.getInt("log_numb")) return true;

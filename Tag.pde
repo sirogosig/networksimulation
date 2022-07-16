@@ -160,7 +160,7 @@ class Tag {
       }
     }
   return connex_tags;
-}
+  }
   
   // update timer
   void increment () {

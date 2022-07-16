@@ -1,3 +1,6 @@
+int tree_diameter;
+int tree_distance;
+
 class Tree {
    PVector pos;
    Tag tag;

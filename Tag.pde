@@ -1,6 +1,7 @@
-
 int n_tags=0;
 int beta =1; // Max number of paths to be considered vulnerable (Paramter for vulnerability probability calculation)
+int tag_diameter;
+
 
 class Tag {
   Tree tree;
@@ -12,6 +13,7 @@ class Tag {
   float entr_grad=0; // How far you are from a bottleneck node
   int last_tags_size=0; // Value of the last grad update
   int last_grad_update_source;// Source (=tag id) of the last grad update 
+  int last_log_transferred=-1; // For BN nodes: indicates the last log transfered
   //PVector suggested_new_cam;
   ArrayList <Tag> onehops; //One hop neighbours
   ArrayList <Tag> twohops; //two hop neighbours
@@ -23,6 +25,9 @@ class Tag {
   ArrayList <ArrayList<Tag>> routes; // Routes for BN
   ArrayList <Tag> least_vuln; // List of least vulnerable one-hops
   
+  boolean connexed=false; // Used when verifying connexity
+  boolean retrieved=false; // Used when retrieving data
+  
   // timers
   int newNeighboursTimer = 0;
    
@@ -33,66 +38,45 @@ class Tag {
     onehops = new ArrayList<Tag>();
     twohops = new ArrayList<Tag>();
     bottlenecks_one= new ArrayList<Tag>();
+    bottlenecks_two= new ArrayList<Tag>();
     //routes = new ArrayList<IntList>();
     routes = new ArrayList<ArrayList<Tag>>();
+    connexed=false;
     prev_entropy=0.;
     entropy=0.;
     entr_grad=0;
     last_tags_size=0;
-    //suggested_new_cam= new PVector(0,0);
+    last_log_transferred=-1;
     
     logs = new Table();
     logs.addColumn("log_numb");
     logs.addColumn("id");
-    //logs.addColumn("species");
-    //logs.addColumn("day");
-    //logs.addColumn("hour");
-    //logs.addColumn("minute");
     
     newNeighboursTimer = int(random(20));
   }
    
   void go () {
     increment();
-    if(newNeighboursTimer==0){ // Rarely update connections (will change only if new node has been added)
+    if(newNeighboursTimer==0){ // Rarely check neighbour connections (will change only if new node has been added)
       getNeighbours(); // Gets one-hops and two-hops
-      if(this.neighb_change>0){
-        if(this.neighb_change == 5){
-          numb_setup_comm+=this.onehops.size(); // Warn neighbours about new two-hop + send new vp + send new entr
-        }
-        this.neighb_change--;
-        calcVulnProb(); // Computes vp and entropy
-        getBottlenecks();
-        getMostVulnNeighb(); // Finds the most vulnerable onehops
-        if(gradient_on)
-          if(this.entropy!=this.prev_entropy){
-            if(this.prev_entropy>0) this.updateEntrGrad(-this.prev_entropy,this,this.id);
-            if(this.entropy>0) this.updateEntrGrad(this.entropy,this,this.id);
-            this.prev_entropy=entropy;
-          }
+    }
+    if(this.neighb_change>0){
+      if(this.neighb_change == 5){
+        numb_setup_comm+=this.onehops.size(); // Warn neighbours about new two-hop + send new vp + send new entr
+      }
+      this.neighb_change--;
+      calcVulnProb(); // Computes vp and entropy
+      getBottlenecks();
+      getMostVulnNeighb(); // Finds the most vulnerable onehops
+      if(gradient_on){
+        if(this.entropy!=this.prev_entropy){
+          if(this.prev_entropy>0) this.updateEntrGrad(-this.prev_entropy,this,this.id);
+          if(this.entropy>0) this.updateEntrGrad(this.entropy,this,this.id);
+          this.prev_entropy=entropy;
         }
       }
     }
-    //if(communicate){
-    //  //Send your data if you are vulnerable
-    //  if(this.logs.getRowCount()!=0){
-    //  int prob_vp = (int)random(101);
-    //    if(prob_vp<this.vuln_prob) {
-    //      for(Tag tag : this.onehops){
-    //        int prob_entr = (int)random(101);
-    //        if(prob_entr>tag.vuln_prob){ // Send a random log to onehops depending on their vp
-    //          int random_log=(int)random(this.logs.getRowCount());
-    //          int log_numb=this.logs.getInt(random_log, "log_numb");
-    //          int id      =this.logs.getInt(random_log, "id");
-    //          tag.addLog(log_numb, id);
-    //        }
-    //      }
-    //    }
-    //  }
-      
-    //  //Acquire data if you are a threshold node
-      
-    //}
+  }
    
   void draw () {
     noStroke();
@@ -350,13 +334,7 @@ class Tag {
   void transferLog(int log_numb, int id, Tag sender){
     numb_comm++;
     int sender_id=sender.id;
-    
-    ////Not sure I need this… :
-    //IntList other_BN= new IntList();
-    ////check if there are other BN to transfer the log to first
-    //for(Tag tag : this.bottlenecks_one){
-    //  other_BN.append(tag.id); // add its ID to the list
-    //}
+    this.last_log_transferred=log_numb;
     
     //Find route of sender
     int route=-1;
@@ -408,7 +386,7 @@ class Tag {
     
     // Stimulate other BN
     for(Tag tag : bottlenecks_one){
-      if(tag.id!=sender_id && !ALmatch(tag,sender.bottlenecks_one)) tag.transferLog(log_numb, id, this);
+      if(tag.last_log_transferred!=log_numb && !ALmatch(tag,sender.bottlenecks_one)) tag.transferLog(log_numb, id, this);
     }
   }
   
@@ -417,6 +395,7 @@ class Tag {
     
     // If we're a BN ourself, send the log to all routes without any BN node
     if(this.entropy>0){
+      this.last_log_transferred=log_numb;
       for(int i=0;i<this.routes.size();i++){ //Run over the different routes
         ArrayList<Tag> currentroute=this.routes.get(i);
         
@@ -517,6 +496,7 @@ class Tag {
   // "caller" is the tag that called the function
   // "degree" is the depth since the first call. Used to indicate how many communications are needed for data retrieval
   Table extractLogsNetwork(Tag caller, int degree){
+    this.retrieved=true;
     Table all_logs = new Table();
     all_logs.addColumn("log_numb");
     all_logs.addColumn("id");
@@ -525,11 +505,10 @@ class Tag {
       numb_comm+=degree; // Add the number of communications needed for retrieval
       all_logs.addRow(row);
     }
-    this.logs.clearRows(); // Delete your own logs
     
     // Extract your one-hops' logs (those that you don't have in common with the caller)
     for(int i=0;i<this.onehops.size();i++){
-      if(onehops.get(i).logs.getRowCount()>=1 && (!ALmatch(onehops.get(i), caller.onehops) || caller==this)){
+      if(!onehops.get(i).retrieved && (!ALmatch(onehops.get(i), caller.onehops) || caller==this)){
         Table new_table=new Table();
         new_table=onehops.get(i).extractLogsNetwork(this, degree+1); // Flagging yourself as the caller
         for(TableRow row : new_table.rows()){
@@ -538,6 +517,28 @@ class Tag {
       }
     }
     return all_logs;
+  }
+  
+  //Returns the IDs of the connected nodes :
+  IntList connex(Tag caller){
+    IntList connex_tags = new IntList(0);
+    
+    // Add the tag itself:
+    connex_tags.append(this.id);
+    //Flag yourself as already connexed:
+    this.connexed=true;
+      
+    // Add your one-hops (those that you don't have in common with the caller)
+    for(int i=0;i<this.onehops.size();i++){
+      if(!this.onehops.get(i).connexed && (!ALmatch(this.onehops.get(i), caller.onehops) || caller==this)){
+        IntList new_connex_tags = new IntList();
+        new_connex_tags=this.onehops.get(i).connex(this); // Flagging yourself as the caller
+        for(int j=0;j< new_connex_tags.size();j++){
+          if(!connex_tags.hasValue(new_connex_tags.get(j))) connex_tags.append(new_connex_tags.get(j)); // Merge with existing group
+        }
+      }
+    }
+  return connex_tags;
   }
   
   // update timer

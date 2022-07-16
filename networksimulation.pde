@@ -6,11 +6,6 @@ final static boolean node_robustness=true; // Select node robsutness (true) or e
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
 
-// (Only in node_robustness mode):
-// Number of logs lost inside damaged tags (which could not be retrieved with any model, thus filtered out)
-int lost_logs=0;
-
-
 int log_count=0;
 int numb_comm=0; // Number of transmissions
 int numb_setup_comm=0; //Number of setup transmissions
@@ -319,7 +314,6 @@ void runExperiment(){
       int numb_dmgd_tags=(int)(NUM_DMGD_TAGS*tags.size());
       while(numb_dmgd_tags>0){
         int damage_index = (int) random(tags.size());
-        lost_logs+=tags.get(damage_index).logs.getRowCount();
         tags.get(damage_index).tree.tagged=false;
         tags.remove(damage_index);
         numb_dmgd_tags--;
@@ -349,7 +343,7 @@ void runExperiment(){
     all_logs.sort("log_numb");
     
     println("Extracted logs from tag " + aimed_tag.id);
-    println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)(log_count-lost_logs));
+    println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
     bufferTimer=buffer_value-1;
   }
 }
@@ -425,7 +419,6 @@ void resetExtraction(){
 }
 
 void reset(){
-  lost_logs=0;
   n_tags=0;
   numb_comm=0;
   numb_setup_comm=0;

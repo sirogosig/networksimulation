@@ -394,7 +394,7 @@ void createRandomLog(){
   logMessageTimer = (int) (frameRate * 0.6);
   log_count++;
   for(Tag tag : tags){
-    numb_setup_comm+=tag.onehops.size(); // Ask neighbours if they have had the last log
+    numb_setup_comm+=2*tag.onehops.size(); // Ask neighbours if they have had the last log
   }
   numb_comm+=tags.size()-1; // Number of transmissions needed for the new log to reach all tags
 }

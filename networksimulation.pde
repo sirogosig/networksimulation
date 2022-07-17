@@ -9,6 +9,7 @@ ArrayList<Tag> tags;
 
 int log_count=0;
 int numb_comm=0;       // Number of transmissions
+int numb_extr_comm=0;
 int numb_setup_comm=0; // Number of setup transmissions
 int max_memory=0;
 
@@ -177,10 +178,11 @@ void drawGUI() {
     rect(100, height - 65, 550, 60);
   }
   fill(255.0); // Text color
-  text("Largest memory : " + max_memory, 690, height - 25);
-  text("# SU comms: " + numb_setup_comm, 830,height - 25);
-  text("# comms: " + numb_comm, 960, height - 25);
-  text("# logs: " + log_count, 1050, height - 25);
+  text("Largest memory : " + max_memory, 670, height - 25);
+  text("# SU comms: " + numb_setup_comm, 810,height - 25);
+  text("# Extraction comms: " + numb_extr_comm, 940, height - 50);
+  text("# comms: " + numb_comm, 940, height - 25);
+  text("# logs: " + log_count, 1040, height - 25);
   text("# tags: " + tags.size(), 1120, height - 25);
   text("# trees: " + trees.size(), 1200, height - 25);
 }
@@ -440,6 +442,7 @@ void resetExtraction(){
 
 void reset(){
   n_tags=0;
+  numb_extr_comm=0;
   numb_comm=0;
   numb_setup_comm=0;
   log_count=0;

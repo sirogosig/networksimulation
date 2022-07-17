@@ -384,15 +384,27 @@ class Tag {
       }
     }
     
-    // Stimulate other BN
-    for(Tag tag : bottlenecks_one){
-      if(tag.last_log_transferred!=log_numb && !ALmatch(tag,sender.bottlenecks_one)) tag.transferLog(log_numb, id, this);
+    // Stimulate highest other BN
+    int highest_BN_index=-1;
+    float highest_entropy=0;
+    for(int i=0;i<this.bottlenecks_one.size();i++){
+      if(bottlenecks_one.get(i).last_log_transferred!=log_numb){ 
+        if(bottlenecks_one.get(i).entropy>highest_entropy){
+          highest_BN_index=i;
+          highest_entropy=bottlenecks_one.get(i).entropy;
+        } 
+      }
     }
+    //Sending log to BN with highest entropy
+    if(highest_BN_index!=-1) bottlenecks_one.get(highest_BN_index).transferLog(log_numb, id, this);
+    
+    //for(Tag tag : bottlenecks_one){
+    //  if(tag.last_log_transferred!=log_numb && !ALmatch(tag,sender.bottlenecks_one)) tag.transferLog(log_numb, id, this);
+    //}
   }
   
   // Smartly spreads the logs based on vp and entropy
   void spreadLog(int log_numb, int id){  
-    
     // If we're a BN ourself, send the log to all routes without any BN node
     if(this.entropy>0){
       this.last_log_transferred=log_numb;
@@ -428,9 +440,10 @@ class Tag {
 
     //Check for BN in onehops
     if(bottlenecks_one.size()!=0){
-      for(int i=0;i<this.bottlenecks_one.size();i++){
-        println("New log sent to one-hop " + bottlenecks_one.get(i).id);
-        bottlenecks_one.get(i).transferLog(log_numb, id, this);
+      for(Tag onehop_BN : bottlenecks_one){
+        //Sending log to nearby BN
+        println("New log sent to one-hop BN " +onehop_BN.id);
+        onehop_BN.transferLog(log_numb, id, this);
       }
     }
     
@@ -502,7 +515,7 @@ class Tag {
     all_logs.addColumn("id");
     
     for(TableRow row : this.logs.rows()){ // Exctract your own logs
-      numb_comm+=degree; // Add the number of communications needed for retrieval
+      numb_extr_comm+=degree; // Add the number of communications needed for retrieval
       all_logs.addRow(row);
     }
     

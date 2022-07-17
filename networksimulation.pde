@@ -4,7 +4,7 @@ final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
 final static int NUM_TAGS=20; // Number of tags to experiment with
 
-static int average_connection=0; // Average number of onehops
+static float average_connection=0; // Average number of onehops
 
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
@@ -176,10 +176,12 @@ void drawGUI() {
     rect(100, height - 65, 550, 60);
   }
   fill(255.0); // Text color
-  text("Largest memory : " + max_memory, 690, height - 25);
-  text("# SU comms: " + numb_setup_comm, 830,height - 25);
-  text("# comms: " + numb_comm, 960, height - 25);
-  text("# logs: " + log_count, 1050, height - 25);
+  text("Largest memory : " + max_memory, 670, height - 25);
+  text("# SU comms: " + numb_setup_comm, 810,height - 25);
+  text("# Average Connections : " + average_connection, 750, height - 50);
+  text("# Extraction comms: " + numb_extr_comm, 940, height - 50);
+  text("# comms: " + numb_comm, 940, height - 25);
+  text("# logs: " + log_count, 1040, height - 25);
   text("# tags: " + tags.size(), 1120, height - 25);
   text("# trees: " + trees.size(), 1200, height - 25);
 }
@@ -296,11 +298,7 @@ void inspection () {
 void runExperiment(){
   // Find a connex setup:
   if(bufferTimer==0){
-    int blob_size=0;
-    do{
-      reset();
-      blob_size = tags.get(0).connex(tags.get(0)).size();
-    } while(blob_size!=tags.size());
+    reset();
     
     println("Found connex setup");
     bufferTimer=2*buffer_value-1;
@@ -418,6 +416,7 @@ void reset(){
       n_tags=0;
       average_connection=0;
       numb_comm=0;
+      numb_extr_comm=0;
       numb_setup_comm=0;
       log_count=0;
       max_memory=0;
@@ -429,7 +428,7 @@ void reset(){
     for(Tag tag : tags){
       average_connection+=tag.onehops.size();
     }
-    average_connection/=tags.size();
+    average_connection/=(float)tags.size();
 }
 
 void increment () {

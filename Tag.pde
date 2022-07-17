@@ -123,7 +123,7 @@ class Tag {
     all_logs.addColumn("id");
     
     for(TableRow row : this.logs.rows()){ // Exctract your own logs
-      numb_comm+=degree; // Add the number of communications needed for retrieval
+      numb_extr_comm+=degree; // Add the number of communications needed for retrieval
       all_logs.addRow(row);
     }
     

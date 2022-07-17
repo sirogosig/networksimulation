@@ -1,8 +1,8 @@
 //Experimentation parameters:
-final static int NUM_LOGS= 100; // Number of logs to be recorded before testing robustness
+final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
 final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
-final static int NUM_TAGS=20; // Number of tags to experiment with
+final static int NUM_TAGS=30; // Number of tags to experiment with
 
 static float average_connection=0; // Average number of onehops
 
@@ -23,7 +23,7 @@ int commRadius;
 int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggested new cam location
 int newLogTimer=0;
 
-int buffer_value= (int) frameRate * 2;
+int buffer_value= (int) (frameRate * 0.5);
 int bufferTimer=0; // So we can see what's happenning on screen during experimentation
 
 // Messages parameters
@@ -300,7 +300,7 @@ void runExperiment(){
   if(bufferTimer==0){
     reset();
     
-    println("Found connex setup");
+    //println("Found connex setup");
     bufferTimer=2*buffer_value-1;
   }  
   
@@ -310,7 +310,7 @@ void runExperiment(){
       createRandomLog();
     }  
     
-    println("Recorded " +NUM_LOGS+ " logs");
+    //println("Recorded " +NUM_LOGS+ " logs");
     bufferTimer=3*buffer_value-1;
   }
   
@@ -332,7 +332,7 @@ void runExperiment(){
         tag.getNeighbours();
       }
       
-      println("Damaged network");
+      //println("Damaged network");
       bufferTimer=4*buffer_value-1;
     }
     
@@ -348,8 +348,9 @@ void runExperiment(){
     Table all_logs=aimed_tag.extractLogsNetwork(aimed_tag,0); //  the logs of the network from this node
     all_logs.sort("log_numb");
     
-    println("Extracted logs from tag " + aimed_tag.id);
-    println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
+    //println("Extracted logs from tag " + aimed_tag.id);
+    //println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
+    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +max_memory+"];");
     bufferTimer=buffer_value-1;
   }
 }

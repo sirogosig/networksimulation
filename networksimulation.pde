@@ -2,12 +2,16 @@
 final static int NUM_LOGS= 100; // Number of logs to be recorded before testing robustness
 final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
+final static int NUM_TAGS=20; // Number of tags to experiment with
+
+static int average_connection=0; // Average number of onehops
 
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
 
 int log_count=0;
 int numb_comm=0; // Number of transmissions
+int numb_extr_comm=0; // Number of comms needed for extraction
 int numb_setup_comm=0; //Number of setup transmissions
 int max_memory=0;
 
@@ -40,7 +44,7 @@ void setup () {
   recalculateConstants();
   tags = new ArrayList<Tag>();
   trees = new ArrayList<Tree>();
-  placeTreesnTags();
+  reset();
 }
 
 void recalculateConstants () {
@@ -147,11 +151,7 @@ void keyPressed () {
     else message("Communication off");
   } else if (key == 'r') { // Reset
     message("Reset");
-    int blob_size=0;
-    do{
-      reset();
-      blob_size = tags.get(0).connex(tags.get(0)).size();
-    } while(blob_size!=tags.size());
+    reset();
   }
   recalculateConstants();
 }
@@ -249,9 +249,10 @@ void placeTreesnTags() {
     for (int y = 100; y < height - 100; y+= tree_distance) {
       boolean tagged=false;
       int randint=(int)random(5);
-      if (randint==1) {
+      if (randint==1 && tags.size()<NUM_TAGS) {
         tagged=true;
       }
+
       trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), tagged));
       if (tagged) tags.add(trees.get(trees.size()-1).tag);
     }
@@ -266,8 +267,15 @@ void placeTreesnTags() {
     tag.getNeighbours();
   }
   
-  //Remove isolated tags:
-  removeIsolatedTags();
+  int tags_short=NUM_TAGS-tags.size(); // Number of tags we're short
+  while(tags_short>0){
+    int rand_tree_index= (int)random(trees.size());
+    if(!trees.get(rand_tree_index).tagged){
+      trees.get(rand_tree_index).tag();
+      tags.add(trees.get(rand_tree_index).tag);
+    }
+    tags_short=NUM_TAGS-tags.size();
+  }
 }
 
 void inspection () {
@@ -400,33 +408,28 @@ void createRandomLog(){
   log_count++;
 }
 
-void removeIsolatedTags(){
-  for (int i=tags.size()-1;i>=0;i--){
-    Tag tag= tags.get(i);
-    if(tag.onehops.size()==0){
-      tag.tree.tagged=false;
-      tags.remove(i);
-    }
-    else if(tag.onehops.size()==1 && tag.twohops.size()==0){
-      tag.tree.tagged=false;
-      tags.remove(i);
-    }
-  }
-}
-
 void resetExtraction(){
   for(int i=0;i<tags.size();i++) tags.get(i).retrieved=false;
 }
 
 void reset(){
-  n_tags=0;
-  numb_comm=0;
-  numb_setup_comm=0;
-  log_count=0;
-  max_memory=0;
-  tags.clear();
-  trees.clear();
-  placeTreesnTags();
+  int blob_size=0;
+    do{
+      n_tags=0;
+      average_connection=0;
+      numb_comm=0;
+      numb_setup_comm=0;
+      log_count=0;
+      max_memory=0;
+      tags.clear();
+      trees.clear();
+      placeTreesnTags();
+      blob_size = tags.get(0).connex(tags.get(0)).size();
+    } while(blob_size!=tags.size());
+    for(Tag tag : tags){
+      average_connection+=tag.onehops.size();
+    }
+    average_connection/=tags.size();
 }
 
 void increment () {

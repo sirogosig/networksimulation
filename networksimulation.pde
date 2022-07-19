@@ -4,6 +4,8 @@ final static float PERC_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
 final static int NUM_TAGS=30; // Number of tags to experiment with
 final static boolean gradient_on =false; // Whether or not to use gradient search
+final static boolean vp_ON=true;
+final static boolean two_hop_BN=true;
 
 static float average_connection=0.; // Average number of onehops
 
@@ -153,11 +155,7 @@ void keyPressed () {
     else message("Communication off");
   } else if (key == 'r') { // Reset
     message("Reset");
-    int blob_size=0;
-    do{
-      reset();
-      blob_size = tags.get(0).connex(tags.get(0)).size();
-    } while(blob_size!=tags.size());
+    reset();
   }
   recalculateConstants();
 }
@@ -185,7 +183,7 @@ void drawGUI() {
   text("Largest memory : " + max_memory, 670, height - 25);
   text("# SU comms: " + numb_setup_comm, 810,height - 25);
   text("# Average Connections : " + average_connection, 750, height - 50);
-  text("# Extraction comms: " + numb_extr_comm, 940, height - 50);
+  text("# Extraction comms: " + numb_extr_comm, 980, height - 50);
   text("# comms: " + numb_comm, 940, height - 25);
   text("# logs: " + log_count, 1040, height - 25);
   text("# tags: " + tags.size(), 1120, height - 25);
@@ -287,7 +285,7 @@ void placeTreesnTags() {
   for(Tag tag : tags){
     tag.calcVulnProb(); // Computes vp and entropy
     tag.getBottlenecks();
-    tag.getMostVulnNeighb(); // Finds the most vulnerable onehops
+    tag.getLeastVulnNeighb(); // Finds the most vulnerable onehops
     if(gradient_on){
       if(tag.entropy>0) tag.updateEntrGrad(tag.entropy,tag,tag.id);
       tag.prev_entropy=tag.entropy;
@@ -303,7 +301,7 @@ void inspection () {
   String entropy= "Entropy: "+aimed_tag.entropy;
   String hops="Onehops: "+aimed_tag.onehops.size() + "  Twohops: "+aimed_tag.twohops.size();
   String logs="Logs: ";
-  String most_vuln= "Most vuln: " + aimed_tag.least_vuln.size();
+  String most_vuln= "Least vuln: " + aimed_tag.least_vuln.size();
   String entr_grad= "Entr grad: " + aimed_tag.entr_grad;
   for(int i =0;i<aimed_tag.logs.getRowCount();i++){
     logs+=" ";

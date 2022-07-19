@@ -65,9 +65,9 @@ class Tag {
         numb_setup_comm+=this.onehops.size(); // Warn neighbours about new two-hop + send new vp + send new entr
       }
       this.neighb_change--;
-      calcVulnProb(); // Computes vp and entropy
+      calcVulnProb(); // Compute vp and entropy
       getBottlenecks();
-      getMostVulnNeighb(); // Finds the most vulnerable onehops
+      getLeastVulnNeighb(); // Find the least vulnerable onehops
       if(gradient_on){
         if(this.entropy!=this.prev_entropy){
           if(this.prev_entropy>0) this.updateEntrGrad(-this.prev_entropy,this,this.id);
@@ -104,7 +104,7 @@ class Tag {
       for (int j=0;j<onehops.size();j++){
         if(ALmatch(twohops.get(i), onehops.get(j).onehops)) numbpaths++;
       }
-      if(numbpaths==0) println("Error in numbpaths calculation");
+      //if(numbpaths==0) println("Error in numbpaths calculation");
       if(numbpaths<=beta && numbpaths>0) pathbeta.add(twohops.get(i));
     }
     if(this.onehops.size() == 0){
@@ -114,19 +114,6 @@ class Tag {
     else{
       this.vuln_prob=((float)pathbeta.size()/((float)(this.onehops.size()+this.twohops.size())));
       this.entropy=calc_entropy(); //Another way of computing the entropy      
-    }
-    //calc_snc(pathbeta);
-  }
-  
-  void calc_snc(ArrayList<Tag> pathbeta){
-    if(pathbeta.size()!=0){
-      PVector final_pos=new PVector(0,0);      
-      for(Tag tag : pathbeta){
-        final_pos=PVector.add(final_pos,tag.tree.pos);
-      }
-      final_pos=PVector.div(final_pos, pathbeta.size()); // Barycenter of all 2-hops with max beta shortest path(s)
-      // suggested_new_cam = i + (f-i)/2 : 
-      //suggested_new_cam= PVector.add(this.tree.pos, PVector.div(PVector.sub(final_pos,this.tree.pos),2));
     }
   }
   
@@ -168,37 +155,17 @@ class Tag {
       }  
     }
     
+    //Manual resetting of entropies in certain cases
+    if(numb_routes==2){
+      for(int i=0; i<total_unique_twohops.length;i++){
+        if(total_unique_twohops[i]==1) return 0;         
+      }
+    }
+            
     if(numb_routes>1) this.routes=calcRoutes(total_unique_twohops, numb_routes);
     if(approx(abs(entropy),0.0)) return 0.0;
     else return abs(entropy); // '-' in the Entropy formula
   }
-  
-  //Calculates the different routes for bottleneck nodes
-  //ArrayList<IntList> calcRoutes(float[] weights, int numb_routes){
-  //  ArrayList<IntList> routes_= new ArrayList<IntList>(numb_routes);
-  //  //int[][] routes = new int[this.onehops.size()][numb_routes];
-  //
-  //  int route=0;
-  //  for(int i=0;i<weights.length;i++){
-  //    //println(weights.length + "  " + numb_routes+ "  " + i);
-  //    if(weights[i]>0){
-  //      IntList one_route = new IntList();
-  //      for(int j=0;j<weights.length;j++){
-  //        if(weights[j]==-i || j==i) one_route.append(this.onehops.get(j).id);
-  //      }
-  //      routes_.add(one_route);
-  //      if(route < numb_routes-1) route++;
-  //    }
-  //  }
-    
-  //  //println("I am : "+ this.id + ", #routes= " + numb_routes);
-  //  //for(int i=0;i<this.onehops.size();i++){
-  //  //  for(int j=0;j<numb_routes;j++){
-  //  //    println(routes[i][j]);
-  //  //  }
-  //  //}
-  //  return routes_;
-  //}
   
   ArrayList<ArrayList<Tag>> calcRoutes(float[] weights, int numb_routes){
     ArrayList<ArrayList<Tag>> routes_= new ArrayList<ArrayList<Tag>>(numb_routes);
@@ -281,23 +248,23 @@ class Tag {
     this.bottlenecks_two=bottlenecks_two_;
   }
   
-  void getMostVulnNeighb(){
+  void getLeastVulnNeighb(){
     ArrayList <Tag> least_vuln_ = new ArrayList();
     for(Tag tag: onehops){
       least_vuln_.add(tag); //Start with every onehop
     }
-    float smallest_vp=10.0; // Start with a high value
+    //float smallest_vp=10.0; // Start with a high value
     
-    //Find the smallest vp in the onehops
-    for(Tag tag : this.onehops){
-      if(tag.vuln_prob<smallest_vp){
-        smallest_vp=tag.vuln_prob; 
-      }
-    }
+    ////Find the smallest vp in the onehops
+    //for(Tag tag : this.onehops){
+    //  if(tag.vuln_prob<smallest_vp){
+    //    smallest_vp=tag.vuln_prob; 
+    //  }
+    //}
     
-    // Remove all tags that have a higher vp than the smallest vp
+    // Remove all tags that have a higher vp than 0.8* ours 
     for(int i=least_vuln_.size()-1; i>=0; i--){
-      if(onehops.get(i).vuln_prob>smallest_vp){
+      if(onehops.get(i).vuln_prob>0.8*this.vuln_prob){
         least_vuln_.remove(i); // Remove the onehops that have a higher vp than other onehops
       }
     }
@@ -346,35 +313,35 @@ class Tag {
         }
       }
     }
-    println("I am : " + this.id);
+    //println("I am : " + this.id);
     
     //Send the log to all other routes (non-BN nodes)
     for(int i=0;i<this.routes.size();i++){ //Run over the different routes
       //IntList currentroute=this.routes.get(i);
       ArrayList<Tag> currentroute=this.routes.get(i);
-      //println("current route  = " + currentroute);
       if(i==route) continue;
       
       //check if they're not all BN (in which case skip the route completely)
-      //println("checking if not all BN");
-      boolean all_BN=true;
-      for(int j=0; j<currentroute.size();j++){
-        if(currentroute.get(j).entropy==0){
-          all_BN=false;
-          break;
+      int numb_BN=0;
+      int last_nonBN_index=-1;
+      for(int j=0;j<currentroute.size();j++){
+        if(currentroute.get(j).entropy>0){
+          numb_BN++;
         }
+        else last_nonBN_index=j;
       }
-      //println("check completed : " + all_BN);
-      if(all_BN) continue;
+      if(numb_BN==currentroute.size()) continue;
       
-      int random_index;
-      do{
-        random_index=(int)random(currentroute.size());
-        //currentroute.shuffle();
-        //transfer_id = currentroute.get(0);
-      }while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
+      else if(currentroute.size()-numb_BN==1 && currentroute.get(last_nonBN_index).onehops.size()<=numb_BN+1){
+        continue; // Don't send data if only one badly-connected non-BN
+      }
+      
+      int random_index= weighted_prob(currentroute);
+      //do{
+      //  random_index=(int)random(currentroute.size());
+      //}while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
       int transfer_id = currentroute.get(random_index).id;
-      println("Sending log to " + transfer_id);
+      //println("Sending log to " + transfer_id);
      
       for(int j=0; j<this.onehops.size(); j++){
         if(this.onehops.get(j).id==transfer_id){
@@ -427,7 +394,7 @@ class Tag {
           random_index=(int)random(currentroute.size());
         }while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
         int transfer_id = currentroute.get(random_index).id;
-        println("I am BN and new log sent to " + transfer_id);
+        //println("I am BN and new log sent to " + transfer_id);
        
         for(int j=0; j<this.onehops.size(); j++){
           if(this.onehops.get(j).id==transfer_id){
@@ -442,13 +409,13 @@ class Tag {
     if(bottlenecks_one.size()!=0){
       for(Tag onehop_BN : bottlenecks_one){
         //Sending log to nearby BN
-        println("New log sent to one-hop BN " +onehop_BN.id);
+        //println("New log sent to one-hop BN " +onehop_BN.id);
         onehop_BN.transferLog(log_numb, id, this);
       }
     }
     
     //If no BN in one-hops, check in two-hops
-    else if(bottlenecks_two.size()!=0){
+    else if(two_hop_BN && bottlenecks_two.size()!=0){
       int max_number_links=0;
       int index=-1;
       for(int i=0;i<this.onehops.size();i++){
@@ -462,18 +429,20 @@ class Tag {
           index=i; // spreadLog to the one-hop that is in contact with the most two-hop BN
         }
       }
-      println("New log sent to non-BN one-hop " + onehops.get(index).id);
+      //println("New log sent to non-BN one-hop " + onehops.get(index).id);
       this.onehops.get(index).spreadLog(log_numb,id);
     }
-    
-    //If no BN anywhere, follow entropy_grad
-    else{
-      //Write here;
+    //If no BN anywhere, follow vp
+    else if(vp_ON && this.least_vuln.size()!=0){
+      int random_index=(int)random(least_vuln.size());
+      //println("(vp) Sending log to " + this.least_vuln.get(random_index).id);
+      this.least_vuln.get(random_index).addLog(log_numb, id);
     }
-
-    //Take VP into account:
-    //for(Tag tag : this.least_vuln){
-    //  if(1.2*tag.vuln_prob<this.vuln_prob) tag.addLog(log_numb, id);
+    
+    
+    ////If no BN anywhere, follow entropy_grad
+    //else{
+    //  //Write here;
     //}
   }
   
@@ -577,16 +546,37 @@ boolean containsLog(Table table, TableRow tablerow){
   return false;
 }
 
-//Is approximately equal
-boolean approx(float a ,float b){
-  float epsilon=0.0001;
-  if(abs(a-b)<epsilon) return true;
-  return false;
-}
-
 boolean contains(int[] arr, int val) {
   for(int i=0; i<arr.length; i++) {
     if(arr[i]==val) return true;
   }
+  return false;
+}
+
+int weighted_prob(ArrayList<Tag> list){
+  int index=-1;
+  float total_vp=0;
+  for(Tag tag : list){
+    if(tag.entropy==0) total_vp+=(1-tag.vuln_prob);
+  }
+  
+  float random_vp=random(total_vp);
+  total_vp=0;
+  for(int i=0;i<list.size();i++){
+    if(list.get(i).entropy==0){
+      total_vp+=(1-list.get(i).vuln_prob);
+      if(total_vp>random_vp){
+        index=i;
+        break;
+      }
+    }
+  }
+  return index;
+}
+
+//Is approximately equal
+boolean approx(float a ,float b){
+  float epsilon=0.0001;
+  if(abs(a-b)<epsilon) return true;
   return false;
 }

@@ -1,23 +1,26 @@
 //Experimentation parameters:
-final static int NUM_LOGS= 100; // Number of logs to be recorded before testing robustness
+final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
 final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
+final static int NUM_TAGS=20; // Number of tags to experiment with
+
+static float average_connection=0; // Average number of onehops
 
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
 
 int log_count=0;
 int numb_comm=0; // Number of transmissions
+int numb_extr_comm=0; // Number of comms needed for extraction
 int numb_setup_comm=0; //Number of setup transmissions
 
 float globalScale = 1.;
 float eraseRadius = 30;
 String tool = "new_logs";
-
 int commRadius;
 int newLogTimer=0;
 
-int buffer_value= (int) frameRate * 2;
+int buffer_value= (int) (frameRate * 0.5);
 int bufferTimer=0; // So we can see what's happenning on screen during experimentation
 
 // Messages parameters
@@ -38,12 +41,13 @@ void setup () {
   recalculateConstants();
   tags = new ArrayList<Tag>();
   trees = new ArrayList<Tree>();
-  placeTreesnTags();
+  reset();
 }
 
 void recalculateConstants () {
   tag_diameter=(int) (8.*globalScale);
   tree_diameter=(int) (12.*globalScale);
+  tree_distance=(int)(80*globalScale);
 
   commRadius = (int) (220.*globalScale);
 }
@@ -169,10 +173,12 @@ void drawGUI() {
     rect(100, height - 65, 550, 60);
   }
   fill(255.0); // Text color
-  text("Largest memory : " + log_count, 690, height - 25);
-  text("# SU comms: " + numb_setup_comm, 830,height - 25);
-  text("# comms: " + numb_comm, 960, height - 25);
-  text("# logs: " + log_count, 1050, height - 25);
+  text("Largest memory : " + log_count, 670, height - 25);
+  text("# SU comms: " + numb_setup_comm, 810,height - 25);
+  text("# Average Connections : " + average_connection, 750, height - 50);
+  text("# Extraction comms: " + numb_extr_comm, 940, height - 50);
+  text("# comms: " + numb_comm, 940, height - 25);
+  text("# logs: " + log_count, 1040, height - 25);
   text("# tags: " + tags.size(), 1120, height - 25);
   text("# trees: " + trees.size(), 1200, height - 25);
 }
@@ -238,13 +244,14 @@ void message (String in) {
 }
 
 void placeTreesnTags() {
-  for (int x = 100; x < width - 50; x+= 80) {
-    for (int y = 100; y < height - 100; y+= 80) {
+  for (int x = 100; x < width - 50; x+= tree_distance) {
+    for (int y = 100; y < height - 100; y+= tree_distance) {
       boolean tagged=false;
       int randint=(int)random(5);
-      if (randint==1) {
+      if (randint==1 && tags.size()<NUM_TAGS) {
         tagged=true;
       }
+
       trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), tagged));
       if (tagged) tags.add(trees.get(trees.size()-1).tag);
     }
@@ -259,8 +266,15 @@ void placeTreesnTags() {
     tag.getNeighbours();
   }
   
-  //Remove isolated tags:
-  removeIsolatedTags();
+  int tags_short=NUM_TAGS-tags.size(); // Number of tags we're short
+  while(tags_short>0){
+    int rand_tree_index= (int)random(trees.size());
+    if(!trees.get(rand_tree_index).tagged){
+      trees.get(rand_tree_index).tag();
+      tags.add(trees.get(rand_tree_index).tag);
+    }
+    tags_short=NUM_TAGS-tags.size();
+  }
 }
 
 void inspection () {
@@ -281,13 +295,7 @@ void inspection () {
 void runExperiment(){
   // Find a connex setup:
   if(bufferTimer==0){
-    int blob_size=0;
-    do{
-      reset();
-      blob_size = tags.get(0).connex(tags.get(0)).size();
-    } while(blob_size!=tags.size());
-    
-    println("Found connex setup");
+    reset();
     bufferTimer=2*buffer_value-1;
   }  
   
@@ -297,7 +305,7 @@ void runExperiment(){
       createRandomLog();
     }  
     
-    println("Recorded " +NUM_LOGS+ " logs");
+    //println("Recorded " +NUM_LOGS+ " logs");
     bufferTimer=3*buffer_value-1;
   }
   
@@ -319,7 +327,7 @@ void runExperiment(){
         tag.getNeighbours();
       }
       
-      println("Damaged network");
+      //println("Damaged network");
       bufferTimer=4*buffer_value-1;
     }
     
@@ -335,8 +343,9 @@ void runExperiment(){
     Table all_logs=aimed_tag.extractLogsNetwork(); // Extract the logs of the network from this node
     all_logs.sort("log_numb");
     
-    println("Extracted logs from tag " + aimed_tag.id);
-    println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
+    //println("Extracted logs from tag " + aimed_tag.id);
+    //println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
+    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +1+"];");
     bufferTimer=buffer_value-1;
   }
 }
@@ -394,33 +403,29 @@ void createRandomLog(){
   logMessageTimer = (int) (frameRate * 0.6);
   log_count++;
   for(Tag tag : tags){
-    numb_setup_comm+=2*tag.onehops.size(); // Ask neighbours if they have had the last log
+    numb_comm+=(tag.onehops.size()-1); // Each node sends the log to all of its neighbours except the sender
   }
-  numb_comm+=tags.size()-1; // Number of transmissions needed for the new log to reach all tags
-}
-
-void removeIsolatedTags(){
-  for (int i=tags.size()-1;i>=0;i--){
-    Tag tag= tags.get(i);
-    if(tag.onehops.size()==0){
-      tag.tree.tagged=false;
-      tags.remove(i);
-    }
-    else if(tag.onehops.size()==1 && tag.twohops.size()==0){
-      tag.tree.tagged=false;
-      tags.remove(i);
-    }
-  }
+  //numb_comm+=tags.size()-1; // Number of transmissions needed for the new log to reach all tags
 }
 
 void reset(){
-  n_tags=0;
-  numb_comm=0;
-  numb_setup_comm=0;
-  log_count=0;
-  tags.clear();
-  trees.clear();
-  placeTreesnTags();
+  int blob_size=0;
+    do{
+      n_tags=0;
+      average_connection=0;
+      numb_comm=0;
+      numb_extr_comm=0;
+      numb_setup_comm=0;
+      log_count=0;
+      tags.clear();
+      trees.clear();
+      placeTreesnTags();
+      blob_size = tags.get(0).connex(tags.get(0)).size();
+    } while(blob_size!=tags.size());
+    for(Tag tag : tags){
+      average_connection+=tag.onehops.size();
+    }
+    average_connection/=(float)tags.size();
 }
 
 void increment () {

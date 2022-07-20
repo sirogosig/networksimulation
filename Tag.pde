@@ -10,7 +10,6 @@ class Tag {
   ArrayList <Tag> twohops; //two hop neighbours
   int neighb_change=0;
   //int[][] routes; // Routes for BN
-  ArrayList <IntList> routes; // Routes for BN
   ArrayList <ArrayList<Tag>> routes__; // Routes for BN
   
   boolean connexed=false; // Used when verifying connexity
@@ -23,7 +22,6 @@ class Tag {
     n_tags++;
     onehops = new ArrayList<Tag>();
     twohops = new ArrayList<Tag>();
-    routes = new ArrayList<IntList>();
     connexed=false;
 
     logs = new Table();
@@ -57,7 +55,6 @@ class Tag {
     text("ID: " + this.id, this.tree.pos.x+8, this.tree.pos.y-10);
     //text("1h: " + this.onehops.size(), this.tree.pos.x-28, this.tree.pos.y-20);
     //text("2h: " + this.twohops.size(), this.tree.pos.x-28, this.tree.pos.y-10);
-    //text("vp: " + this.vuln_prob, this.tree.pos.x+8, this.tree.pos.y+8);
   }
   
   void getNeighbours () {
@@ -91,18 +88,11 @@ class Tag {
     }
   }
   
-  // Creates new log and spread it to everybody
+  // Creates new log
   void newLog(int log_numb){
     TableRow newRow = this.logs.addRow();
     newRow.setInt("log_numb",log_numb);
     newRow.setInt("id", id);
-    
-    //// Spread log to all neighbours
-    //for(int i=0;i<this.onehops.size();i++){
-    //  if(!containsLog(this.onehops.get(i).logs, newRow)){
-    //    this.onehops.get(i).newLog(log_numb, id);
-    //  }
-    //}
   }
   
   Table extractLogsNetwork(){

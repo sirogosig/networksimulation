@@ -62,7 +62,7 @@ class Tag {
     }
     if(this.neighb_change>0){
       if(this.neighb_change == 5){
-        numb_setup_comm+=this.onehops.size(); // Warn neighbours about new two-hop + send new vp + send new entr
+        //numb_setup_comm+=this.onehops.size(); // Warn neighbours about new two-hop + send new vp + send new entr
       }
       this.neighb_change--;
       calcVulnProb(); // Compute vp and entropy
@@ -484,8 +484,10 @@ class Tag {
     all_logs.addColumn("id");
     
     for(TableRow row : this.logs.rows()){ // Exctract your own logs
-      numb_extr_comm+=degree; // Add the number of communications needed for retrieval
-      all_logs.addRow(row);
+      if(row.getInt("id")!=caller.id){
+        numb_extr_comm+=degree; // Add the number of communications needed for retrieval
+        all_logs.addRow(row);
+      }
     }
     
     // Extract your one-hops' logs (those that you don't have in common with the caller)

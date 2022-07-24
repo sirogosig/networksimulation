@@ -1,6 +1,6 @@
 //Experimentation parameters:
 final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float PERC_DMGD_TAGS= 0.2; // Percentage of damaged tags
+final static float PERC_DMGD_TAGS= 0.4; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
 final static int NUM_TAGS=30; // Number of tags to experiment with
 final static boolean gradient_on =false; // Whether or not to use gradient search
@@ -26,7 +26,7 @@ int commRadius;
 int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggested new cam location
 int newLogTimer=0;
 
-int buffer_value= (int) (frameRate * 0.5);
+int buffer_value= (int) (frameRate * 0.25);
 int bufferTimer=0; // So we can see what's happenning on screen during experimentation
 
 // Messages parameters
@@ -255,7 +255,7 @@ void placeTreesnTags() {
     for (int y = 100; y < height - 100; y+= tree_distance) {
       boolean tagged=false;
       int randint=(int)random(5);
-      if (randint==1) {
+      if (randint==1 && tags.size()<NUM_TAGS) {
         tagged=true;
       }
       trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), tagged));
@@ -365,7 +365,7 @@ void runExperiment(){
     Table all_logs=aimed_tag.extractLogsNetwork(aimed_tag,0); //  the logs of the network from this node
     all_logs.sort("log_numb");
 
-    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +max_memory+"];");
+    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+"];");
     //println("Extracted logs from tag " + aimed_tag.id);
     //println("Percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
     bufferTimer=buffer_value-1;

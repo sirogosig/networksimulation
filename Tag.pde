@@ -10,9 +10,6 @@ class Tag {
   ArrayList <Tag> onehops; //One hop neighbours
   ArrayList <Tag> twohops; //two hop neighbours
   int neighb_change=0;
-  //int[][] routes; // Routes for BN
-  ArrayList <IntList> routes; // Routes for BN
-  ArrayList <ArrayList<Tag>> routes__; // Routes for BN
   
   boolean connexed=false; // Used when verifying connexity
   boolean retrieved=false; // Used when retrieving data
@@ -25,7 +22,6 @@ class Tag {
     n_tags++;
     onehops = new ArrayList<Tag>();
     twohops = new ArrayList<Tag>();
-    routes = new ArrayList<IntList>();
     connexed=false;
 
     logs = new Table();
@@ -106,11 +102,23 @@ class Tag {
     }
   }
   
-  // Creates new log and spreads it
+  // Creates new log and spreads it to one random neighbour
   void newLog(int log_numb){
     TableRow newRow = this.logs.addRow();
     newRow.setInt("log_numb",log_numb);
     newRow.setInt("id", this.id);
+    if(this.logs.getRowCount()>max_memory) max_memory= this.logs.getRowCount(); // Update global max memory (metric)
+    int random_index= (int)random(this.onehops.size());
+    this.onehops.get(random_index).addLog(log_numb, this.id);
+  }
+  
+  // Receives log from other tag
+  void addLog(int log_numb, int id){
+    numb_comm++; // Count the communication that was made
+    
+    TableRow newRow = this.logs.addRow();
+    newRow.setInt("log_numb",log_numb);
+    newRow.setInt("id", id);
     if(this.logs.getRowCount()>max_memory) max_memory= this.logs.getRowCount(); // Update global max memory (metric)
   }
   

@@ -1,8 +1,8 @@
 //Experimentation parameters:
 final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float NUM_DMGD_TAGS= 0.4; // Percentage of damaged tags
+final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
-final static int NUM_TAGS=30; // Number of tags to experiment with
+final static int NUM_TAGS=20; // Number of tags to experiment with
 
 static float average_connection=0; // Average number of onehops
 
@@ -348,8 +348,6 @@ void runExperiment(){
     Table all_logs=aimed_tag.extractLogsNetwork(aimed_tag,0); //  the logs of the network from this node
     all_logs.sort("log_numb");
     
-    //println("Extracted logs from tag " + aimed_tag.id);
-    //println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
     println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+"];");
     bufferTimer=buffer_value-1;
   }

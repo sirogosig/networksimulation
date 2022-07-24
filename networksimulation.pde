@@ -1,6 +1,6 @@
 //Experimentation parameters:
 final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
+final static float NUM_DMGD_TAGS= 0.4; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
 final static int NUM_TAGS=30; // Number of tags to experiment with
 
@@ -23,7 +23,7 @@ int commRadius;
 int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggested new cam location
 int newLogTimer=0;
 
-int buffer_value= (int) (frameRate * 0.5);
+int buffer_value= (int) (frameRate * 0.25);
 int bufferTimer=0; // So we can see what's happenning on screen during experimentation
 
 // Messages parameters
@@ -350,7 +350,7 @@ void runExperiment(){
     
     //println("Extracted logs from tag " + aimed_tag.id);
     //println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
-    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +max_memory+"];");
+    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+"];");
     bufferTimer=buffer_value-1;
   }
 }

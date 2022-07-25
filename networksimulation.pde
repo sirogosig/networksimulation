@@ -1,13 +1,14 @@
 //Experimentation parameters:
-final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float DMG_PERC= 1.5; // Percentage of damaged tags OR damaged edges (w.r.t number of tags)
 final static int NUM_TAGS=40; // Number of tags to experiment with
+final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
+final static float DMG_PERC= 1.25; // Percentage of damaged tags OR damaged edges (w.r.t number of tags)
 final static boolean node_robustness=false; // Select node robsutness (true) or edge robustness (false)
 final static boolean two_hop_BN=true;
 final static boolean vp_ON=true;
 final static boolean gradient_on =false; // Whether or not to use gradient search
+final static boolean BN_ON=true;
 
-static float average_connection=0.; // Average number of onehops
+static float average_connection; // Average number of onehops
 
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
@@ -96,14 +97,14 @@ void draw () {
   }
 
   for (int i = 0; i <tags.size(); i++) {
-    Tag current = tags.get(i);
-    //current.go();
-    current.draw();
+    Tag tag = tags.get(i);
+    //tag.go();
+    tag.draw();
   }
 
   for (int i = 0; i <trees.size(); i++) {
-    Tree current = trees.get(i);
-    current.draw();
+    Tree tree = trees.get(i);
+    tree.draw();
   }
   
   if (experimenting && bufferTimer > 0) {
@@ -170,7 +171,7 @@ void drawGUI() {
   if (logMessageTimer > 0){
     fill((min(30, logMessageTimer) / 30.0) * 255.0);
 
-    text(logMessageText, 590, height - 25);
+    text(logMessageText, 580, height - 25);
   }
   fill(255.0); // Text color
   text(inspectionText, 110, height - 45);
@@ -253,15 +254,9 @@ void message (String in) {
 void placeTreesnTags() {
   for (int x = 100; x < width - 50; x+= tree_distance) {
     for (int y = 100; y < height - 100; y+= tree_distance) {
-      //boolean tagged=false;
-      //int randint=(int)random(5);
-      //if (randint==1 && tags.size()<NUM_TAGS) {
-      //  tagged=true;
-      //}
       trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), false));
     }
   }
- 
   
   int tags_short=NUM_TAGS; // Tag trees randomly
   while(tags_short>0){
@@ -270,7 +265,7 @@ void placeTreesnTags() {
       trees.get(rand_tree_index).tag();
       tags.add(trees.get(rand_tree_index).tag);
     }
-    tags_short=NUM_TAGS-tags.size();
+    tags_short--;
   }
   
   // run getNeighbours() twice to make sure two-hops are configurated too !
@@ -284,11 +279,16 @@ void placeTreesnTags() {
   
   for(Tag tag : tags){
     tag.calcVulnProb(); // Computes vp and entropy
+  }
+  
+  for(Tag tag : tags){
     tag.getBottlenecks();
     tag.getLeastVulnNeighb(); // Finds the most vulnerable onehops
-    if(gradient_on){
+  }
+  
+  if(gradient_on){
+    for(Tag tag : tags){
       if(tag.entropy>0) tag.updateEntrGrad(tag.entropy,tag,tag.id);
-      tag.prev_entropy=tag.entropy;
     }
   }
 }
@@ -406,11 +406,6 @@ void extraction () {
   resetExtraction(); // Ensure we can extract from other point after the first extraction too
   all_logs.sort("log_numb");
   println("Number of collected logs: "+all_logs.getRowCount());
-  //println("Collected logs are: ");
-  //for (int i =0; i < all_logs.getRowCount();i++){
-  //  println(all_logs.getInt(i,"log_numb"));
-  //}
-  //log_count=0; // No more logs in the network anymore
 }
 
 int getAimedTreeIndex() {
@@ -447,7 +442,7 @@ void createRandomLog(){
   int tag_index = (int)random(tags.size());
   tags.get(tag_index).newLog(log_count);
   logMessageText="New log at " + tags.get(tag_index).id;
-  logMessageTimer = (int) (frameRate * 0.6);
+  logMessageTimer = (int) (frameRate * 1);
   log_count++;
 }
 

@@ -108,6 +108,13 @@ class Tag {
     newRow.setInt("log_numb",log_numb);
     newRow.setInt("id", this.id);
     if(this.logs.getRowCount()>max_memory) max_memory= this.logs.getRowCount(); // Update global max memory (metric)
+    
+    ////Send to all your onehops
+    //for(Tag onehop : onehops){
+    //  onehop.addLog(log_numb,this.id);
+    //}
+    
+    //Send to random onehop
     int random_index= (int)random(this.onehops.size());
     this.onehops.get(random_index).addLog(log_numb, this.id);
   }

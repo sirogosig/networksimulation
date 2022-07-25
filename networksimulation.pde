@@ -2,7 +2,7 @@
 final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
 final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
-final static int NUM_TAGS=20; // Number of tags to experiment with
+final static int NUM_TAGS=50; // Number of tags to experiment with
 
 static float average_connection=0; // Average number of onehops
 
@@ -14,13 +14,13 @@ int numb_comm=0; // Number of transmissions
 int numb_extr_comm=0; // Number of comms needed for extraction
 int numb_setup_comm=0; //Number of setup transmissions
 
-float globalScale = 1.;
+float globalScale = 1.*0.7;
 float eraseRadius = 30;
 String tool = "new_logs";
 int commRadius;
 int newLogTimer=0;
 
-int buffer_value= (int) (frameRate * 0.5);
+int buffer_value= (int) (frameRate * 0.1);
 int bufferTimer=0; // So we can see what's happenning on screen during experimentation
 
 // Messages parameters
@@ -147,7 +147,7 @@ void keyPressed () {
     if(communicate) message("Communication on");
     else message("Communication off");
   } else if (key == 'r') { // Reset
-    message("Tag eraser");
+    message("Reset");
     reset();
   }
   recalculateConstants();
@@ -246,17 +246,19 @@ void message (String in) {
 void placeTreesnTags() {
   for (int x = 100; x < width - 50; x+= tree_distance) {
     for (int y = 100; y < height - 100; y+= tree_distance) {
-      boolean tagged=false;
-      int randint=(int)random(5);
-      if (randint==1 && tags.size()<NUM_TAGS) {
-        tagged=true;
-      }
-
-      trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), tagged));
-      if (tagged) tags.add(trees.get(trees.size()-1).tag);
+      trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), false));
     }
   }
   
+  int tags_short=NUM_TAGS; // Tag trees randomly
+  while(tags_short>0){
+    int rand_tree_index= (int)random(trees.size());
+    if(!trees.get(rand_tree_index).tagged){
+      trees.get(rand_tree_index).tag();
+      tags.add(trees.get(rand_tree_index).tag);
+    }
+    tags_short--;
+  }
   
   // run getNeighbours() twice to make sure two-hops are configurated too !
   for (Tag tag: tags){
@@ -264,16 +266,6 @@ void placeTreesnTags() {
   }
   for (Tag tag: tags){
     tag.getNeighbours();
-  }
-  
-  int tags_short=NUM_TAGS-tags.size(); // Number of tags we're short
-  while(tags_short>0){
-    int rand_tree_index= (int)random(trees.size());
-    if(!trees.get(rand_tree_index).tagged){
-      trees.get(rand_tree_index).tag();
-      tags.add(trees.get(rand_tree_index).tag);
-    }
-    tags_short=NUM_TAGS-tags.size();
   }
 }
 
@@ -397,15 +389,12 @@ void createRandomLog(){
   for(int i=0;i<tags.size();i++){
     tags.get(i).newLog(log_count);
   }
-  //int tag_index = (int)random(tags.size());
-  //tags.get(tag_index).newLog(log_count,tags.get(tag_index).id);
-  logMessageText="New log added " ;//+ tags.get(tag_index).id;
+  //logMessageText="New log added " ;//+ tags.get(tag_index).id;
   logMessageTimer = (int) (frameRate * 0.6);
   log_count++;
   for(Tag tag : tags){
     numb_comm+=(tag.onehops.size()-1); // Each node sends the log to all of its neighbours except the sender
   }
-  //numb_comm+=tags.size()-1; // Number of transmissions needed for the new log to reach all tags
 }
 
 void reset(){

@@ -1,11 +1,11 @@
 //Experimentation parameters:
 final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float PERC_DMGD_TAGS= 0.4; // Percentage of damaged tags
-final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
-final static int NUM_TAGS=30; // Number of tags to experiment with
-final static boolean gradient_on =false; // Whether or not to use gradient search
-final static boolean vp_ON=true;
+final static float DMG_PERC= 1.5; // Percentage of damaged tags OR damaged edges (w.r.t number of tags)
+final static int NUM_TAGS=40; // Number of tags to experiment with
+final static boolean node_robustness=false; // Select node robsutness (true) or edge robustness (false)
 final static boolean two_hop_BN=true;
+final static boolean vp_ON=true;
+final static boolean gradient_on =false; // Whether or not to use gradient search
 
 static float average_connection=0.; // Average number of onehops
 
@@ -19,14 +19,14 @@ int numb_setup_comm=0; // Number of setup transmissions
 int max_memory=0;
 
 
-float globalScale = 1.;
+float globalScale = 1.*0.8;
 float eraseRadius = 30;
 String tool = "new_logs";
 int commRadius;
 int inspected_tag_index=-1; // Used to draw the currently inspected tag's suggested new cam location
 int newLogTimer=0;
 
-int buffer_value= (int) (frameRate * 0.25);
+int buffer_value= (int) (frameRate * 0.1);
 int bufferTimer=0; // So we can see what's happenning on screen during experimentation
 
 // Messages parameters
@@ -97,7 +97,7 @@ void draw () {
 
   for (int i = 0; i <tags.size(); i++) {
     Tag current = tags.get(i);
-    current.go();
+    //current.go();
     current.draw();
   }
 
@@ -253,14 +253,24 @@ void message (String in) {
 void placeTreesnTags() {
   for (int x = 100; x < width - 50; x+= tree_distance) {
     for (int y = 100; y < height - 100; y+= tree_distance) {
-      boolean tagged=false;
-      int randint=(int)random(5);
-      if (randint==1 && tags.size()<NUM_TAGS) {
-        tagged=true;
-      }
-      trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), tagged));
-      if (tagged) tags.add(trees.get(trees.size()-1).tag);
+      //boolean tagged=false;
+      //int randint=(int)random(5);
+      //if (randint==1 && tags.size()<NUM_TAGS) {
+      //  tagged=true;
+      //}
+      trees.add(new Tree(x + random(-30, 30), y + random(-30, 30), false));
     }
+  }
+ 
+  
+  int tags_short=NUM_TAGS; // Tag trees randomly
+  while(tags_short>0){
+    int rand_tree_index= (int)random(trees.size());
+    if(!trees.get(rand_tree_index).tagged){
+      trees.get(rand_tree_index).tag();
+      tags.add(trees.get(rand_tree_index).tag);
+    }
+    tags_short=NUM_TAGS-tags.size();
   }
   
   // run getNeighbours() twice to make sure two-hops are configurated too !
@@ -270,16 +280,6 @@ void placeTreesnTags() {
   }
   for (Tag tag: tags){
     tag.getNeighbours();
-  }
-  
-  int tags_short=NUM_TAGS-tags.size(); // Number of tags we're short
-  while(tags_short>0){
-    int rand_tree_index= (int)random(trees.size());
-    if(!trees.get(rand_tree_index).tagged){
-      trees.get(rand_tree_index).tag();
-      tags.add(trees.get(rand_tree_index).tag);
-    }
-    tags_short=NUM_TAGS-tags.size();
   }
   
   for(Tag tag : tags){
@@ -334,7 +334,7 @@ void runExperiment(){
   //Randomly damage network
   if(bufferTimer==2*buffer_value){
     if(node_robustness){ //damage nodes directly
-      int numb_dmgd_tags=(int)(PERC_DMGD_TAGS*tags.size());
+      int numb_dmgd_tags=(int)(DMG_PERC*tags.size());
       while(numb_dmgd_tags>0){
         int damage_index = (int) random(tags.size());
         tags.get(damage_index).tree.tagged=false;
@@ -348,14 +348,39 @@ void runExperiment(){
       for (Tag tag: tags){
         tag.getNeighbours();
       }
-      
-      //println("Damaged network");
-      bufferTimer=4*buffer_value-1;
     }
     
     else{ // damage edges (communication links)
-      
+      int numb_dmgd_edges=(int)(DMG_PERC*tags.size());
+      while(numb_dmgd_edges>0){
+        int damage_tag_index;
+        do{
+          damage_tag_index = (int) random(tags.size());
+        }while(tags.get(damage_tag_index).onehops.size()<=0);
+        int this_id= tags.get(damage_tag_index).id;
+        int damage_edge_index= (int) random(tags.get(damage_tag_index).onehops.size());
+        int other_id=tags.get(damage_tag_index).onehops.get(damage_edge_index).id;
+        tags.get(damage_tag_index).onehops.remove(damage_edge_index);
+        
+        // Remove also for other
+        for(int i=0;i<tags.size();i++){
+          if(i==damage_tag_index) continue;
+          if(tags.get(i).id==other_id){
+            for(int j=0;j<tags.get(i).onehops.size();j++){
+              if(tags.get(i).onehops.get(j).id==this_id){
+                tags.get(i).onehops.remove(j);
+                break;
+              }
+            }
+            break;
+          }
+        }
+        numb_dmgd_edges--;
+      }
     }
+    
+    //println("Damaged network");
+      bufferTimer=4*buffer_value-1;
   }
   
   //Extract from random node
@@ -365,7 +390,9 @@ void runExperiment(){
     Table all_logs=aimed_tag.extractLogsNetwork(aimed_tag,0); //  the logs of the network from this node
     all_logs.sort("log_numb");
 
-    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+"];");
+    if(numb_extr_comm!=0){
+      println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+"];");
+    }
     //println("Extracted logs from tag " + aimed_tag.id);
     //println("Percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
     bufferTimer=buffer_value-1;

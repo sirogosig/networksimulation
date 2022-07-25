@@ -336,13 +336,22 @@ class Tag {
         continue; // Don't send data if only one badly-connected non-BN
       }
       
-      int random_index= weighted_prob(currentroute);
-      //do{
-      //  random_index=(int)random(currentroute.size());
-      //}while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
-      int transfer_id = currentroute.get(random_index).id;
-      //println("Sending log to " + transfer_id);
-     
+      int transfer_id;
+      if(vp_ON){
+        int random_index= weighted_prob(currentroute);
+        //do{
+        //  random_index=(int)random(currentroute.size());
+        //}while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
+        transfer_id = currentroute.get(random_index).id;
+      }
+      else{
+        int random_index;
+        do{
+          random_index=(int)random(currentroute.size());
+        }while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
+        transfer_id = currentroute.get(random_index).id;
+      }
+      
       for(int j=0; j<this.onehops.size(); j++){
         if(this.onehops.get(j).id==transfer_id){
           this.onehops.get(j).addLog(log_numb, id);
@@ -362,7 +371,7 @@ class Tag {
         } 
       }
     }
-    //Sending log to BN with highest entropy
+    //Transferring log to BN with highest entropy
     if(highest_BN_index!=-1) bottlenecks_one.get(highest_BN_index).transferLog(log_numb, id, this);
     
     //for(Tag tag : bottlenecks_one){
@@ -371,78 +380,93 @@ class Tag {
   }
   
   // Smartly spreads the logs based on vp and entropy
-  void spreadLog(int log_numb, int id){  
-    // If we're a BN ourself, send the log to all routes without any BN node
-    if(this.entropy>0){
-      this.last_log_transferred=log_numb;
-      for(int i=0;i<this.routes.size();i++){ //Run over the different routes
-        ArrayList<Tag> currentroute=this.routes.get(i);
+  void spreadLog(int log_numb, int id){ 
+    if(id!=this.id) numb_comm++;
+    
+    //If vp is on and the log comes from you, follow vp 
+    int vp_node_id=-1;
+    if(vp_ON && id==this.id){
+      int random_index= weighted_prob(this.onehops);
+      if(random_index>=0){ 
+        this.onehops.get(random_index).addLog(log_numb, id);
+        vp_node_id=this.onehops.get(random_index).id;
+      }
+    }
+    
+    //// If we're a BN ourself, send the log to all routes without any BN node
+    //if(this.entropy>0){
+    //  this.last_log_transferred=log_numb;
+    //  for(int i=0;i<this.routes.size();i++){ //Run over the different routes
+    //    ArrayList<Tag> currentroute=this.routes.get(i);
         
-        //check if it has a BN in one-hops or two-hops (in which case skip the route completely)
-        boolean any_BN=false;
-        for(int j=0; j<currentroute.size();j++){
-          if(currentroute.get(j).entropy>0 || currentroute.get(j).bottlenecks_one.size()>1){ // >1 as there is ourselves already ;)
-            any_BN=true;
-            break;
-          }
-        }
-        //println("check completed :" + all_BN);
-        if(any_BN) continue;
+    //    //check if it has a BN in one-hops or two-hops (in which case skip the route completely)
+    //    boolean any_BN=false;
+    //    for(int j=0; j<currentroute.size();j++){
+    //      if(currentroute.get(j).entropy>0 || currentroute.get(j).bottlenecks_one.size()>1){ // >1 as there is ourselves already ;)
+    //        any_BN=true;
+    //        break;
+    //      }
+    //    }
+    //    //println("check completed :" + all_BN);
+    //    if(any_BN) continue;
+    //    if(currentroute.size()==1 && currentroute.get(0).id==vp_node_id) continue; // Don't send if we've already sent with vp
         
-        int random_index;
-        do{
-          random_index=(int)random(currentroute.size());
-        }while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
-        int transfer_id = currentroute.get(random_index).id;
-        //println("I am BN and new log sent to " + transfer_id);
+    //    int random_index;
+    //    int transfer_id;
+    //    do{
+    //      random_index=(int)random(currentroute.size());
+    //      transfer_id = currentroute.get(random_index).id;
+    //    }while(currentroute.get(random_index).entropy>0 || transfer_id == vp_node_id); // Needs to not be a BN and ≠ vp_node_id
+    //    //println("I am BN and new log sent to " + transfer_id);
        
-        for(int j=0; j<this.onehops.size(); j++){
-          if(this.onehops.get(j).id==transfer_id){
-            this.onehops.get(j).addLog(log_numb, id);
-            break;
-          }
-        }
-      }
-    }
+    //    for(int j=0; j<this.onehops.size(); j++){
+    //      if(this.onehops.get(j).id==transfer_id){
+    //        this.onehops.get(j).addLog(log_numb, id);
+    //        break;
+    //      }
+    //    }
+    //  }
+    //}
 
-    //Check for BN in onehops
-    if(bottlenecks_one.size()!=0){
-      for(Tag onehop_BN : bottlenecks_one){
-        //Sending log to nearby BN
-        //println("New log sent to one-hop BN " +onehop_BN.id);
-        onehop_BN.transferLog(log_numb, id, this);
-      }
-    }
+    ////Check for BN in onehops
+    //if(bottlenecks_one.size()!=0){
+    //  for(Tag onehop_BN : bottlenecks_one){
+    //    //Sending log to nearby BN
+    //    //println("New log sent to one-hop BN " +onehop_BN.id);
+    //    onehop_BN.transferLog(log_numb, id, this);
+    //  }
+    //}
     
-    //If no BN in one-hops, check in two-hops
-    else if(two_hop_BN && bottlenecks_two.size()!=0){
-      int max_number_links=0;
-      int index=-1;
-      for(int i=0;i<this.onehops.size();i++){
-        if(this.onehops.get(i).id==id) continue;
-        int number_links=0;
-        for(int j=0;j<this.bottlenecks_two.size();j++){
-          if(ALmatch(this.bottlenecks_two.get(j),this.onehops.get(i).onehops)) number_links++;
-        }
-        if(number_links>max_number_links){
-          max_number_links=number_links;
-          index=i; // spreadLog to the one-hop that is in contact with the most two-hop BN
-        }
-      }
-      //println("New log sent to non-BN one-hop " + onehops.get(index).id);
-      this.onehops.get(index).spreadLog(log_numb,id);
-    }
-    //If no BN anywhere, follow vp
-    else if(vp_ON && this.least_vuln.size()!=0){
-      int random_index=(int)random(least_vuln.size());
-      //println("(vp) Sending log to " + this.least_vuln.get(random_index).id);
-      this.least_vuln.get(random_index).addLog(log_numb, id);
-    }
+    ////If no BN in one-hops, check in two-hops
+    //else if(two_hop_BN && bottlenecks_two.size()!=0){
+    //  int max_number_links=0;
+    //  int index=-1;
+    //  for(int i=0;i<this.onehops.size();i++){
+    //    if(this.onehops.get(i).id==id) continue;
+    //    int number_links=0;
+    //    for(int j=0;j<this.bottlenecks_two.size();j++){
+    //      if(ALmatch(this.bottlenecks_two.get(j),this.onehops.get(i).onehops)) number_links++;
+    //    }
+    //    if(number_links>max_number_links){
+    //      max_number_links=number_links;
+    //      index=i; // spreadLog to the one-hop that is in contact with the most two-hop BN
+    //    }
+    //  }
+    //  //println("New log sent to non-BN one-hop " + onehops.get(index).id);
+    //  this.onehops.get(index).spreadLog(log_numb,id);
+    //}
     
-    
-    ////If no BN anywhere, follow entropy_grad
-    //else{
-    //  //Write here;
+    ////If no BN anywhere and gradient ON, follow gradient
+    //else if(gradient_on){
+    //  float highest_entr_grad=0.0;
+    //  int highest_index=-1;
+    //  for(int i=0;i<this.onehops.size();i++){
+    //    if(this.onehops.get(i).entr_grad>highest_entr_grad){
+    //      highest_index=i;
+    //      highest_entr_grad=entr_grad;
+    //    }
+    //  }
+    //  if(highest_entr_grad>0.0) this.onehops.get(highest_index).spreadLog(log_numb,id);
     //}
   }
   
@@ -484,7 +508,7 @@ class Tag {
     all_logs.addColumn("id");
     
     for(TableRow row : this.logs.rows()){ // Exctract your own logs
-      if(row.getInt("id")!=caller.id){
+      if(row.getInt("id")!=caller.id || caller==this){
         numb_extr_comm+=degree; // Add the number of communications needed for retrieval
         all_logs.addRow(row);
       }

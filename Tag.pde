@@ -109,14 +109,17 @@ class Tag {
     newRow.setInt("id", this.id);
     if(this.logs.getRowCount()>max_memory) max_memory= this.logs.getRowCount(); // Update global max memory (metric)
     
-    ////Send to all your onehops
-    //for(Tag onehop : onehops){
-    //  onehop.addLog(log_numb,this.id);
-    //}
-    
-    //Send to random onehop
-    int random_index= (int)random(this.onehops.size());
-    this.onehops.get(random_index).addLog(log_numb, this.id);
+    if(lower_middle){ //Lower middle baseline model
+      //Send to random onehop
+      int random_index= (int)random(this.onehops.size());
+      this.onehops.get(random_index).addLog(log_numb, this.id);
+    }
+    else{ //Upper middle baseline model
+      //Send to all your onehops
+      for(Tag onehop : onehops){
+        onehop.addLog(log_numb,this.id);
+      }
+    }
   }
   
   // Receives log from other tag

@@ -1,8 +1,9 @@
 //Experimentation parameters:
-final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float DMG_PERC= 1.0; // Percentage of damaged tags
-final static boolean node_robustness=false; // Select node robsutness (true) or edge robustness (false)
 final static int NUM_TAGS=40; // Number of tags to experiment with
+final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
+final static float DMG_PERC= 1.5; // Percentage of damaged tags
+final static boolean node_robustness=false; // Select node robsutness (true) or edge robustness (false)
+final static boolean lower_middle=true; // Select upper (send to all onehops) or lower (send to random onehop) middle baseline model
 
 static float average_connection=0; // Average number of onehops
 
@@ -253,7 +254,6 @@ void placeTreesnTags() {
     }
   }
  
-  
   int tags_short=NUM_TAGS; // Tag trees randomly
   while(tags_short>0){
     int rand_tree_index= (int)random(trees.size());

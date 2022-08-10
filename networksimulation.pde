@@ -1,8 +1,8 @@
 //Experimentation parameters:
-final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float DMG_PERC= 1.0; // Percentage of damaged tags
-final static boolean node_robustness=false; // Select node robsutness (true) or edge robustness (false)
 final static int NUM_TAGS=40; // Number of tags to experiment with
+final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
+final static float DMG_PERC= 0.4; // Percentage of damaged tags
+final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
 
 static float average_connection=0; // Average number of onehops
 
@@ -14,9 +14,11 @@ int numb_comm=0; // Number of transmissions
 int numb_extr_comm=0; // Number of comms needed for extraction
 int numb_setup_comm=0; //Number of setup transmissions
 int max_memory=0;
+float mean_memory=0.0;
+float std_memory=0.0;
 
 
-float globalScale = 1.*0.8;
+float globalScale = 0.8;
 float eraseRadius = 30;
 String tool = "new_logs";
 int commRadius;
@@ -302,6 +304,19 @@ void runExperiment(){
       createRandomLog();
     }  
     
+    // Mean memory calculation
+    for(Tag tag : tags){
+      mean_memory+=(float)tag.logs.getRowCount()/NUM_LOGS;
+    }
+    mean_memory/=NUM_TAGS;
+    
+    // Std memory calculation
+    for(Tag tag : tags){
+      std_memory+=((float)tag.logs.getRowCount()/NUM_LOGS-mean_memory)*((float)tag.logs.getRowCount()/NUM_LOGS-mean_memory);
+    }
+    std_memory/=(float)(NUM_TAGS-1);
+    std_memory=sqrt(std_memory);
+    
     //println("Recorded " +NUM_LOGS+ " logs");
     bufferTimer=3*buffer_value-1;
   }
@@ -366,7 +381,7 @@ void runExperiment(){
     all_logs.sort("log_numb");
 
     if(numb_extr_comm!=0){
-      println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+"];");
+      println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+","+mean_memory+","+std_memory+"];");
     }
     //println("Extracted logs from tag " + aimed_tag.id);
     //println("Percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
@@ -443,8 +458,8 @@ void reset(){
       tags.clear();
       trees.clear();
       placeTreesnTags();
-      blob_size = tags.get(0).connex(tags.get(0)).size();
-    } while(blob_size!=tags.size());
+      if(tags.size()!=0) blob_size = tags.get(0).connex(tags.get(0)).size();
+    } while(blob_size!=tags.size() && NUM_TAGS!=0);
     for(Tag tag : tags){
       average_connection+=tag.onehops.size();
     }

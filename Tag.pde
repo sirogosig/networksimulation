@@ -54,7 +54,7 @@ class Tag {
       line(this.tree.pos.x, this.tree.pos.y, tag.tree.pos.x, tag.tree.pos.y);
     }
     
-    textSize(12);
+    textSize(16);
     fill(255.0);
     text("ID: " + this.id, this.tree.pos.x+8, this.tree.pos.y-10);
     //text("1h: " + this.onehops.size(), this.tree.pos.x-28, this.tree.pos.y-20);

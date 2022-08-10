@@ -337,7 +337,7 @@ void runExperiment(){
     
     //println("Extracted logs from tag " + aimed_tag.id);
     //println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
-    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +1+"];");
+    println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +1+","+1+","+0+"];");
     bufferTimer=buffer_value-1;
   }
 }

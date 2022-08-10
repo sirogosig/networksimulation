@@ -7,10 +7,10 @@ class Tag {
   Tree tree;
   Table logs;
   final int id; 
-  float entropy=0;
-  float prev_entropy=0;
-  float vuln_prob=0;
-  float entr_grad=0; // How far you are from a bottleneck node
+  float entropy=0.0;
+  float prev_entropy=0.0;
+  float vuln_prob=0.0;
+  float entr_grad=0.0; // How far you are from a bottleneck node
   int last_tags_size=0; // Value of the last grad update
   int last_grad_update_source;// Source (=tag id) of the last grad update 
   int last_log_transferred=-1; // For BN nodes: indicates the last log transfered
@@ -25,7 +25,7 @@ class Tag {
   ArrayList <ArrayList<Tag>> routes; // Routes for BN
   ArrayList <Tag> least_vuln; // List of least vulnerable one-hops
   
-  boolean connexed=false; // Used when verifying connexity
+  boolean connexed=false; // Used when verifying connectity
   boolean retrieved=false; // Used when retrieving data
   
   // timers
@@ -43,7 +43,7 @@ class Tag {
     routes = new ArrayList<ArrayList<Tag>>();
     connexed=false;
     prev_entropy=0.;
-    entropy=0.;
+    entropy=0.0;
     entr_grad=0;
     last_tags_size=0;
     last_log_transferred=-1;
@@ -88,12 +88,12 @@ class Tag {
       line(this.tree.pos.x, this.tree.pos.y, tag.tree.pos.x, tag.tree.pos.y);
     }
     
-    textSize(12);
+    textSize(16);
     fill(255.0);
     text("ID: " + this.id, this.tree.pos.x+8, this.tree.pos.y-10);
     //text("1h: " + this.onehops.size(), this.tree.pos.x-28, this.tree.pos.y-20);
     //text("2h: " + this.twohops.size(), this.tree.pos.x-28, this.tree.pos.y-10);
-    //text("vp: " + this.vuln_prob, this.tree.pos.x+8, this.tree.pos.y+8);
+    //if(this.entropy!=0) text("entropy: " + this.entropy, this.tree.pos.x+8, this.tree.pos.y+8);
   }
   
   void calcVulnProb(){
@@ -112,7 +112,7 @@ class Tag {
     }
     else{
       this.vuln_prob=((float)pathbeta.size()/((float)(this.onehops.size()+this.twohops.size())));
-      this.entropy=calc_entropy(); //Another way of computing the entropy      
+      this.entropy=calc_entropy(); //Computes the entropy      
     }
   }
   
@@ -329,7 +329,6 @@ class Tag {
     
     //Send the log to all other routes (non-BN nodes)
     for(int i=0;i<this.routes.size();i++){ //Run over the different routes
-      //IntList currentroute=this.routes.get(i);
       ArrayList<Tag> currentroute=this.routes.get(i);
       if(i==route_sender || i==route_source) continue;
       
@@ -344,16 +343,13 @@ class Tag {
       }
       if(numb_BN==currentroute.size()) continue;
       
-      else if(currentroute.size()-numb_BN==1 && currentroute.get(last_nonBN_index).onehops.size()<=numb_BN+1){
+      else if((currentroute.size()-numb_BN)==1 && currentroute.get(last_nonBN_index).onehops.size()<=numb_BN+1){
         continue; // Don't send data if only one badly-connected non-BN
       }
       
       int transfer_id;
       if(vp_ON){
         int random_index= weighted_prob(currentroute, true);
-        //do{
-        //  random_index=(int)random(currentroute.size());
-        //}while(currentroute.get(random_index).entropy>0); // Needs to not be a BN
         transfer_id = currentroute.get(random_index).id;
       }
       else{
@@ -367,13 +363,13 @@ class Tag {
       for(int j=0; j<this.onehops.size(); j++){
         if(this.onehops.get(j).id==transfer_id){
           //println("Adding log to ID: "+this.onehops.get(j).id);
-          this.onehops.get(j).addLog(log_numb, id);
+          this.onehops.get(j).addLog(log_numb, id, true);
           break;
         }
       }
     }
     
-    // Stimulate highest other BN
+    // Stimulate other highest-entropy BN
     int highest_BN_index=-1;
     float highest_entropy=0;
     for(int i=0;i<this.bottlenecks_one.size();i++){
@@ -386,10 +382,6 @@ class Tag {
     }
     //Transferring log to BN with highest entropy
     if(highest_BN_index!=-1) bottlenecks_one.get(highest_BN_index).transferLog(log_numb, id, this);
-    
-    //for(Tag tag : bottlenecks_one){
-    //  if(tag.last_log_transferred!=log_numb && !ALmatch(tag,sender.bottlenecks_one)) tag.transferLog(log_numb, id, this);
-    //}
   }
   
   // Smartly spreads the logs based on vp and entropy
@@ -399,43 +391,42 @@ class Tag {
     //If vp is on and the log comes from you, follow vp 
     int vp_node_id=-1;
     if(vp_ON && id==this.id){
-      int random_index= weighted_prob(this.onehops, BN_ON); // Ignore BNs if BNs are turned on
+      int random_index= weighted_prob(this.onehops, false);
       if(random_index>=0){ 
-        this.onehops.get(random_index).addLog(log_numb, id);
+        this.onehops.get(random_index).addLog(log_numb, id, false);
         //println("Following VP to ID: " + this.onehops.get(random_index).id);
         vp_node_id=this.onehops.get(random_index).id;
       }
     }
     
-    // If we're a BN ourself, send the log to all routes without any BN node
+    // If we're a BN ourself, send the log to all routes without any BN node except the one where the vp was followed to
     if(BN_ON && this.entropy>0){
       this.last_log_transferred=log_numb;
       for(int i=0;i<this.routes.size();i++){ //Run over the different routes
         ArrayList<Tag> currentroute=this.routes.get(i);
         
-        //check if it has a BN in one-hops or two-hops (in which case skip the route completely)
-        boolean any_BN=false;
+        //check if it has a BN in one-hops or two-hops or has the node followed by vp (in which case skip the route completely)
+        boolean skip_route=false;
         for(int j=0; j<currentroute.size();j++){
-          if(currentroute.get(j).entropy>0 || currentroute.get(j).bottlenecks_one.size()>1){ // >1 as there is ourselves already ;)
-            any_BN=true;
+          if(currentroute.get(j).id==vp_node_id ||  currentroute.get(j).entropy>0 || currentroute.get(j).bottlenecks_one.size()>1){ // >1 as there is ourselves already ;)
+            skip_route=true;
             break;
           }
         }
         //println("check completed :" + all_BN);
-        if(any_BN) continue;
-        if(currentroute.size()==1 && currentroute.get(0).id==vp_node_id) continue; // Don't send if we've already sent with vp
+        if(skip_route) continue;
         
         int random_index;
         int transfer_id;
         do{
           random_index=(int)random(currentroute.size());
           transfer_id = currentroute.get(random_index).id;
-        }while(currentroute.get(random_index).entropy>0 || transfer_id == vp_node_id); // Needs to not be a BN and ≠ vp_node_id
+        }while(currentroute.get(random_index).entropy>0);
         //println("I am BN and new log sent to " + transfer_id);
        
         for(int j=0; j<this.onehops.size(); j++){
           if(this.onehops.get(j).id==transfer_id){
-            this.onehops.get(j).addLog(log_numb, id);
+            this.onehops.get(j).addLog(log_numb, id, true);
             break;
           }
         }
@@ -494,22 +485,44 @@ class Tag {
   }
   
   // Receives log from other tag
-  void addLog(int log_numb, int id){
+  void addLog(int log_numb, int id, boolean from_BN){
     numb_comm++; // Count the communication that was made
-
-    //Check that we don't alreayd have this log
-    boolean add=true;
-    for (int i =0; i<this.logs.getRowCount();i++){
-      int log_numb_=logs.getInt(i,"log_numb");
-      if(log_numb==log_numb_) add=false;
+    boolean sent=false; // Whether or not we sent it elsewhere
+    
+    //If we're an isolated tag, either save the log from BN here or at the neighbour
+    if(from_BN && this.onehops.size()-this.bottlenecks_one.size()==1){
+      int coin_flip=(int)random(2);
+      if(coin_flip==0){
+        int index=-1; // Index of the only non-BN onehop
+        for(int k=0;k<this.onehops.size();k++){
+          if(this.onehops.get(k).entropy==0){
+            index=k;
+            break;
+          }
+        }
+        this.onehops.get(index).addLog(log_numb,id,false);
+        sent=true;
+      }
     }
     
-    // If we don't already have it, add it
-    if(add){
-      TableRow newRow = this.logs.addRow();
-      newRow.setInt("log_numb",log_numb);
-      newRow.setInt("id", id);
-      if(this.logs.getRowCount()>max_memory) max_memory= this.logs.getRowCount(); // Update global max memory (metric)
+    if(!sent){
+        //Check that we don't alreayd have this log
+        boolean add=true;
+        for(int i =0; i<this.logs.getRowCount();i++){
+          int log_numb_=logs.getInt(i,"log_numb");
+          if(log_numb==log_numb_) add=false;
+        }
+        
+        // If we don't already have it, add it
+        if(add){
+          TableRow newRow = this.logs.addRow();
+          newRow.setInt("log_numb",log_numb);
+          newRow.setInt("id", id);
+          if(this.logs.getRowCount()>max_memory){
+            max_memory= this.logs.getRowCount(); // Update global max memory (metric)
+            max_mem_id=this.id;
+          }
+        }
     }
   }
   
@@ -518,7 +531,10 @@ class Tag {
     TableRow newRow = this.logs.addRow();
     newRow.setInt("log_numb",log_numb);
     newRow.setInt("id", this.id);
-    if(this.logs.getRowCount()>max_memory) max_memory= this.logs.getRowCount(); // Update global max memory (metric)
+    if(this.logs.getRowCount()>max_memory){
+      max_memory= this.logs.getRowCount(); // Update global max memory (metric)
+      max_mem_id=this.id;
+    }
     spreadLog(log_numb, this.id); // Smartly spread the log 
   }
   

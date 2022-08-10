@@ -1,12 +1,12 @@
 //Experimentation parameters:
 final static int NUM_TAGS=40; // Number of tags to experiment with
 final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
-final static float DMG_PERC= 1.25; // Percentage of damaged tags OR damaged edges (w.r.t number of tags)
-final static boolean node_robustness=false; // Select node robsutness (true) or edge robustness (false)
-final static boolean two_hop_BN=true;
+final static float DMG_PERC= 0.4; // Percentage of damaged tags OR damaged edges (w.r.t number of tags)
+final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
 final static boolean vp_ON=true;
-final static boolean gradient_on =false; // Whether or not to use gradient search
 final static boolean BN_ON=true;
+final static boolean two_hop_BN=true;
+final static boolean gradient_on =false; // Whether or not to use gradient search
 
 static float average_connection; // Average number of onehops
 
@@ -18,9 +18,12 @@ int numb_comm=0;       // Number of transmissions
 int numb_extr_comm=0;
 int numb_setup_comm=0; // Number of setup transmissions
 int max_memory=0;
+float mean_memory=0.0;
+float std_memory=0.0;
+int max_mem_id=-1;
 
 
-float globalScale = 1.*0.8;
+static float globalScale = 0.8;
 float eraseRadius = 30;
 String tool = "new_logs";
 int commRadius;
@@ -137,6 +140,9 @@ void keyPressed () {
   } else if (key == 'z') {
     tool = "tag_eraser";
     message("Tag eraser");
+  } else if (key == 'a') {
+    tool = "erase";
+    message(" Eraser");
   } else if (key == 'x') {
     tool = "extract";
     message("Extract logs");
@@ -171,7 +177,7 @@ void drawGUI() {
   if (logMessageTimer > 0){
     fill((min(30, logMessageTimer) / 30.0) * 255.0);
 
-    text(logMessageText, 580, height - 25);
+    text(logMessageText, 580, height - 35);
   }
   fill(255.0); // Text color
   text(inspectionText, 110, height - 45);
@@ -181,7 +187,7 @@ void drawGUI() {
     rect(100, height - 65, 550, 60);
   }
   fill(255.0); // Text color
-  text("Largest memory : " + max_memory, 670, height - 25);
+  text("Largest memory : " + max_memory + " at : " + max_mem_id, 630, height - 25);
   text("# SU comms: " + numb_setup_comm, 810,height - 25);
   text("# Average Connections : " + average_connection, 750, height - 50);
   text("# Extraction comms: " + numb_extr_comm, 980, height - 50);
@@ -327,6 +333,19 @@ void runExperiment(){
       createRandomLog();
     }  
     
+    // Mean memory calculation
+    for(Tag tag : tags){
+      mean_memory+=(float)tag.logs.getRowCount()/NUM_LOGS;
+    }
+    mean_memory/=NUM_TAGS;
+    
+    // Std memory calculation
+    for(Tag tag : tags){
+      std_memory+=((float)tag.logs.getRowCount()/NUM_LOGS-mean_memory)*((float)tag.logs.getRowCount()/NUM_LOGS-mean_memory);
+    }
+    std_memory/=(float)(NUM_TAGS-1);
+    std_memory=sqrt(std_memory);
+    
     //println("Recorded " +NUM_LOGS+ " logs");
     bufferTimer=3*buffer_value-1;
   }
@@ -391,7 +410,7 @@ void runExperiment(){
     all_logs.sort("log_numb");
 
     if(numb_extr_comm!=0){
-      println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+"];");
+      println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +(float)max_memory/NUM_LOGS+","+mean_memory+","+std_memory+"];");
     }
     //println("Extracted logs from tag " + aimed_tag.id);
     //println("Percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
@@ -460,11 +479,12 @@ void reset(){
       numb_setup_comm=0;
       log_count=0;
       max_memory=0;
+      max_mem_id=-1;
       tags.clear();
       trees.clear();
       placeTreesnTags();
-      blob_size = tags.get(0).connex(tags.get(0)).size();
-    } while(blob_size!=tags.size());
+      if(tags.size()!=0) blob_size = tags.get(0).connex(tags.get(0)).size();
+    } while(blob_size!=tags.size() && NUM_TAGS!=0);
     for(Tag tag : tags){
       average_connection+=tag.onehops.size();
     }

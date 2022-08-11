@@ -1,10 +1,12 @@
 //Experimentation parameters:
+final static int NUM_TAGS=50; // Number of tags to experiment with
 final static int NUM_LOGS= 150; // Number of logs to be recorded before testing robustness
 final static float NUM_DMGD_TAGS= 0.2; // Percentage of damaged tags
 final static boolean node_robustness=true; // Select node robsutness (true) or edge robustness (false)
-final static int NUM_TAGS=50; // Number of tags to experiment with
+static int numb_experiments=70;
 
 static float average_connection=0; // Average number of onehops
+
 
 ArrayList<Tree> trees;
 ArrayList<Tag> tags;
@@ -14,7 +16,8 @@ int numb_comm=0; // Number of transmissions
 int numb_extr_comm=0; // Number of comms needed for extraction
 int numb_setup_comm=0; //Number of setup transmissions
 
-float globalScale = 1.*0.7;
+// 20-->1.17 (4.15), 30-->0.9 (4.19), 40-->0.75 (4.14), 50-->0.675 (4.05)
+float globalScale = 0.675;
 float eraseRadius = 30;
 String tool = "new_logs";
 int commRadius;
@@ -339,6 +342,8 @@ void runExperiment(){
     //println("percentage of collected logs: "+((float)all_logs.getRowCount())/(float)log_count);
     println("["+((float)all_logs.getRowCount())/(float)log_count*100 + "," + average_connection + ", " + numb_setup_comm + "," + numb_extr_comm + "," + numb_comm+ "," +1+","+1+","+0+"];");
     bufferTimer=buffer_value-1;
+    numb_experiments--;
+    if(numb_experiments==0) exit();
   }
 }
 
